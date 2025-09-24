@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Twinfinity Photography</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bgfx" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+    <span class="grain"></span>
+  </div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <button class="burger" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="brand"><img src="assets/images/logo/logo.png" alt="Twinfinity logo" onerror="this.style.display='none'"/>Twinfinity <span>Photography</span></div>
+      <nav class="nav">
+        <a href="#home">Home</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#services">Services</a>
+        <a href="#about">About</a>
+        <a href="#booking">Booking</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+    <aside id="sidebar" class="sidebar" aria-hidden="true">
+      <div class="sidebar-inner">
+        <button class="sidebar-close" aria-label="Close menu">×</button>
+        <a href="#home">Home</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#services">Services</a>
+        <a href="#about">About</a>
+        <a href="#booking">Booking</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </aside>
+    <div class="backdrop" data-close-sidebar></div>
+  </header>
+
+  <main>
+    <section id="founders" class="founders-band">
+      <div class="container founders-inner reveal">
+        <div class="founders-photos" id="founders-photos"></div>
+        <div class="founders-copy">
+          <h2 class="section-title">Meet the Sisters behind Twinfinity</h2>
+          <p class="muted">Two creative storytellers, dedicated to capturing emotion with elegance and detail. From intimate portraits to grand celebrations, their vision blends artistry with timeless style.</p>
+          <p class="muted">Their approach is simple and considered: take time to listen, plan with intention, and photograph with heart. The result is a collection that feels polished yet personal — the kind of imagery you’ll return to for years.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="home" class="hero reveal">
+      <div class="container">
+        <h1><span class="accent">Timeless</span> stories, beautifully told</h1>
+        <p class="lead">Elegant wedding, event, and portrait photography that feels refined, modern, and unforgettable.</p>
+        <div class="hero-cta">
+          <a class="btn" href="#booking">Book a Session</a>
+          <a class="btn ghost" href="#portfolio">View Portfolio</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="portfolio" class="section">
+      <div class="container">
+        <h2 class="section-title reveal">Portfolio</h2>
+
+        <div class="filters reveal" role="tablist" aria-label="Filter portfolio">
+          <button class="filter active" data-filter="all" aria-selected="true">All</button>
+          <button class="filter" data-filter="wedding">Weddings</button>
+          <button class="filter" data-filter="event">Events</button>
+          <button class="filter" data-filter="portrait">Portraits</button>
+        </div>
+
+        <div class="category reveal" data-category="wedding">
+          <h3>Weddings</h3>
+          <div class="gallery" id="gallery-wedding" data-category="wedding"></div>
+        </div>
+
+        <div class="category reveal" data-category="event">
+          <h3>Events</h3>
+          <div class="gallery" id="gallery-event" data-category="event"></div>
+        </div>
+
+        <div class="category reveal" data-category="portrait">
+          <h3>Portraits</h3>
+          <div class="gallery" id="gallery-portrait" data-category="portrait"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="services" class="section alt">
+      <div class="container">
+        <h2 class="section-title reveal">Services & Pricing</h2>
+        <p class="muted reveal">Transparent, flexible packages designed around your story. Travel and accommodation are not included in listed prices. For custom packages, contact us — we’ll tailor coverage to your timeline and deliverables. We keep things simple: clear deliverables, realistic timelines, and dependable support before, during, and after your event.</p>
+
+        <div id="services-list" class="cards"></div>
+
+        <h3 class="mt-32 reveal">Add-ons</h3>
+        <div id="addons-list" class="chips"></div>
+
+        <p class="note reveal">Note: Pricing is indicative and subject to change based on scope and availability. Album designs and print materials are provided through trusted partners. Multi-day events and outstation bookings can be quoted on request.</p>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <div class="container reveal">
+        <h2 class="section-title">About</h2>
+        <p>
+          We are Twinfinity Photography — storytellers dedicated to preserving your most meaningful moments through timeless imagery. From intimate weddings to vibrant events and expressive portraits, we create experiences as memorable as the photos themselves.
+        </p>
+        <p class="muted">We believe in honest emotions, elegant composition, and the kind of refined editing that looks beautiful today and timeless tomorrow. Every session is planned with care so you can simply be present — we’ll capture the rest.</p>
+        <ul class="muted" style="margin:8px 0 0 18px;">
+          <li>Editorial-quality retouching and color grading</li>
+          <li>Professional lighting and equipment for any venue</li>
+          <li>Clear communication, punctuality, and dependable delivery</li>
+          <li>Secure online gallery — easy sharing with family and friends</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="testimonials" class="section alt">
+      <div class="container">
+        <h2 class="section-title reveal">What Clients Say</h2>
+        <div class="testimonials">
+          <blockquote class="testimonial reveal">“They captured our wedding beautifully — every tiny moment! Highly recommended.” <span>— Ayesha & Hamza</span></blockquote>
+          <blockquote class="testimonial reveal">“Professional team, punctual, and incredible results for our corporate gala.” <span>— NEXA Corp</span></blockquote>
+          <blockquote class="testimonial reveal">“Our pre-wedding shoot felt effortless and the photos look like magazine covers.” <span>— Sara & Daniyal</span></blockquote>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section">
+      <div class="container">
+        <h2 class="section-title reveal">FAQ</h2>
+        <div class="faq reveal">
+          <details>
+            <summary>Do prices include travel?</summary>
+            <p>No — travel and accommodation are billed separately based on location and logistics.</p>
+          </details>
+          <details>
+            <summary>How do we receive photos and videos?</summary>
+            <p>High-resolution images are delivered via online gallery and USB (on request). Video is delivered digitally; albums are delivered physically if selected.</p>
+          </details>
+          <details>
+            <summary>How do I confirm a booking?</summary>
+            <p>Confirm via WhatsApp and a 30% advance to secure your date. Balance is due upon delivery.</p>
+          </details>
+          <details>
+            <summary>How many images do we get?</summary>
+            <p>Every event is different, but you can expect a thoughtfully curated selection that tells the complete story — typically 250–600+ photos for a full-day event.</p>
+          </details>
+          <details>
+            <summary>Can you match a specific editing style?</summary>
+            <p>We are happy to align on mood and tone. Our signature look is elegant, true-to-life color with refined highlights and rich shadows.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <div class="cta-inner reveal">
+          <h3>Ready to create something timeless?</h3>
+          <a class="btn" href="#booking">Reserve your date</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="booking" class="section">
+      <div class="container">
+        <h2 class="section-title reveal">Booking</h2>
+        <form id="booking-form" class="booking-form reveal" autocomplete="on">
+          <div class="form-row">
+            <label for="name">Full Name</label>
+            <input id="name" name="name" type="text" placeholder="Your name" required />
+          </div>
+          <div class="form-row">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" required />
+          </div>
+          <div class="form-row">
+            <label for="date">Event Date</label>
+            <input id="date" name="date" type="date" required />
+          </div>
+          <div class="form-row">
+            <label for="event">Event Type</label>
+            <select id="event" name="event" required>
+              <option value="Wedding">Wedding</option>
+              <option value="Engagement">Engagement</option>
+              <option value="Birthday">Birthday</option>
+              <option value="Corporate Event">Corporate Event</option>
+              <option value="Portrait Session">Portrait Session</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="message">Notes</label>
+            <textarea id="message" name="message" rows="4" placeholder="Tell us about your event..."></textarea>
+          </div>
+          <button type="submit" class="btn">Send via WhatsApp</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="contact" class="section alt">
+      <div class="container">
+        <h2 class="section-title reveal">Contact</h2>
+        <div class="contact-grid reveal">
+          <div>
+            <p>
+              Email us directly:
+              <a id="contact-email" class="link" href="mailto:your-email@example.com">your-email@example.com</a>
+            </p>
+            <p>
+              Or reach us on WhatsApp:
+              <a id="whatsapp-link" class="link" href="https://wa.me/923001234567" target="_blank" rel="noopener noreferrer">Message on WhatsApp</a>
+            </p>
+          </div>
+          <div class="socials">
+            <a id="social-instagram" href="https://instagram.com/yourprofile" target="_blank" aria-label="Instagram" class="social instagram" rel="noopener noreferrer" title="Instagram">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm10 2c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3V7c0-1.654 1.346-3 3-3h10zm-5 3.5A5.5 5.5 0 1 0 17.5 13 5.507 5.507 0 0 0 12 7.5zm0 2A3.5 3.5 0 1 1 8.5 13 3.504 3.504 0 0 1 12 9.5zM18 6.25a1.25 1.25 0 1 0 1.25 1.25A1.25 1.25 0 0 0 18 6.25z"/></svg>
+            </a>
+            <a id="social-facebook" href="https://facebook.com/yourprofile" target="_blank" aria-label="Facebook" class="social facebook" rel="noopener noreferrer" title="Facebook">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12.07C22 6.48 17.52 2 11.93 2S2 6.48 2 12.07C2 17.08 5.66 21.21 10.44 22v-7.02H7.9V12.1h2.54V9.83c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.22.2 2.22.2v2.44h-1.25c-1.23 0-1.61.77-1.61 1.56v1.86h2.74l-.44 2.88h-2.3V22C18.34 21.21 22 17.08 22 12.07z"/></svg>
+            </a>
+            <a id="social-whatsapp" href="https://wa.me/923001234567" target="_blank" aria-label="WhatsApp" class="social whatsapp" rel="noopener noreferrer" title="WhatsApp">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.52 3.48A11.91 11.91 0 0 0 12.04 0C5.48 0 .17 5.31.17 11.86c0 2.09.55 4.12 1.6 5.93L0 24l6.37-1.66a11.83 11.83 0 0 0 5.67 1.45h.01c6.56 0 11.86-5.31 11.86-11.86 0-3.17-1.23-6.15-3.39-8.45zM12.05 21.2h-.01a9.91 9.91 0 0 1-5.04-1.38l-.36-.21-3.79.99 1.01-3.69-.24-.38a9.91 9.91 0 0 1-1.54-5.26C2.08 6.43 6.39 2.1 12.04 2.1c2.61 0 5.06 1.02 6.9 2.87a9.72 9.72 0 0 1 2.86 6.88c0 5.65-4.31 10.35-9.75 10.35zM17.1 14.1c-.28-.14-1.64-.8-1.88-.89-.25-.09-.43-.14-.62.14-.19.28-.71.89-.87 1.07-.16.19-.32.21-.6.07-.28-.14-1.15-.42-2.2-1.33-.81-.71-1.35-1.58-1.51-1.85-.16-.28-.02-.43.12-.57.13-.13.28-.35.42-.53.14-.18.19-.3.28-.5.09-.19.05-.36-.02-.5-.07-.14-.62-1.49-.85-2.04-.22-.54-.45-.47-.62-.48-.16-.01-.34-.01-.53-.01-.19 0-.5.07-.76.36-.26.28-.99.97-.99 2.37 0 1.4 1.02 2.75 1.16 2.94.14.19 2 3.06 4.85 4.29.68.29 1.21.46 1.62.59.68.22 1.29.19 1.77.12.54-.08 1.64-.67 1.87-1.32.23-.65.23-1.2.16-1.32-.07-.12-.26-.19-.54-.33z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>© <span id="year"></span> Twinfinity Photography. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-label="Image viewer">
+    <button class="lightbox-close" aria-label="Close">×</button>
+    <img id="lightbox-image" alt="Viewed image" />
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
