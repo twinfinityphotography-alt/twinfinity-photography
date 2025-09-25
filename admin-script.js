@@ -4,8 +4,11 @@ import {
   logoutAdmin, 
   onAuthChange, 
   FirebaseAPI, 
-  CLOUDINARY_CONFIG 
+  CLOUDINARY_CONFIG,
+  uploadImageViaFunction,
+  uploadProfilePhotoViaFunction
 } from './firebase-config.js';
+import { FallbackStorage } from './fallback-storage.js';
 
 class AdminDashboard {
   constructor() {
@@ -104,6 +107,7 @@ class AdminDashboard {
     this.setupModalHandlers();
     this.setupFormHandlers();
     this.setupUploadHandlers();
+    this.setupProfileImageHandlers();
   }
 
   async handleLogin(e) {
@@ -165,6 +169,7 @@ class AdminDashboard {
       services: 'Services & Pricing',
       orders: 'Client Orders',
       testimonials: 'Client Testimonials',
+      profile: 'Admin Profile',
       settings: 'Site Settings'
     };
     document.getElementById('page-title').textContent = titles[section] || section;
@@ -197,6 +202,9 @@ class AdminDashboard {
           break;
         case 'testimonials':
           await this.loadTestimonials();
+          break;
+        case 'profile':
+          await this.loadProfile();
           break;
         case 'settings':
           await this.loadSettings();
@@ -625,6 +633,12 @@ class AdminDashboard {
       e.preventDefault();
       await this.saveSocialSettings(e);
     });
+
+    // Profile form
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.saveProfile(e);
+    });
   }
 
   setupUploadHandlers() {
@@ -837,7 +851,8 @@ class AdminDashboard {
       text: formData.get('text'),
       author: formData.get('author'),
       order: parseInt(formData.get('order')),
-      active: formData.get('active') === 'on'
+      active: formData.get('active') === 'on',
+      published: formData.get('active') === 'on'
     };
 
     try {
@@ -919,18 +934,24 @@ class AdminDashboard {
 
       for (let i = 0; i < this.selectedFiles.length; i++) {
         const file = this.selectedFiles[i];
+
+        // Read file as data URL for backend upload (avoids exposing secrets in client)
+        const fileDataUrl = await this.readFileAsDataUrl(file);
+
         const progress = ((i + 1) / this.selectedFiles.length) * 100;
         progressFill.style.width = `${progress}%`;
 
-        // Upload to Cloudinary
-        const imageUrl = await this.uploadToCloudinary(file, categoryId);
+        // Upload via Firebase Function -> Cloudinary
+        const folder = `twinfinity/${categoryId}`;
+        const imageUrl = await uploadImageViaFunction(fileDataUrl, folder);
         
         // Save to Firestore
         await FirebaseAPI.addGalleryImage({
           categoryId,
           url: imageUrl,
           alt: `${categoryId} image`,
-          order: Date.now() + i // Simple ordering
+          order: Date.now() + i, // Simple ordering
+          published: true
         });
       }
 
@@ -947,23 +968,14 @@ class AdminDashboard {
     }
   }
 
-  async uploadToCloudinary(file, categoryId) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'twinfinity_photos');
-    formData.append('folder', `twinfinity/${categoryId}`);
-
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`, {
-      method: 'POST',
-      body: formData
+  // Utility to convert a File to data URL
+  readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to upload image to Cloudinary');
-    }
-
-    const data = await response.json();
-    return data.secure_url;
   }
 
   // Edit methods
@@ -1128,6 +1140,140 @@ Status: ${order.status}
 Submitted: ${new Date(order.createdAt.seconds * 1000).toLocaleDateString()}
       `;
       alert(details);
+    }
+  }
+
+  // Profile Management
+  async loadProfile() {
+    try {
+      const profile = await FirebaseAPI.getAdminProfile();
+      this.displayProfile(profile);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      this.displayProfile(null);
+    }
+  }
+
+  displayProfile(profile) {
+    const nameEl = document.getElementById('admin-name');
+    const bioEl = document.getElementById('admin-bio');
+    const expEl = document.getElementById('admin-experience');
+    const locEl = document.getElementById('admin-location');
+    const specEl = document.getElementById('admin-specialties');
+    const imgEl = document.getElementById('profile-image-preview');
+    const placeholder = document.getElementById('profile-placeholder');
+    const removeBtn = document.getElementById('remove-profile-image');
+
+    if (!profile) {
+      if (imgEl) { imgEl.style.display = 'none'; imgEl.src = ''; }
+      if (placeholder) placeholder.style.display = 'flex';
+      if (removeBtn) removeBtn.style.display = 'none';
+      return;
+    }
+
+    if (nameEl) nameEl.value = profile.name || '';
+    if (bioEl) bioEl.value = profile.bio || '';
+    if (expEl) expEl.value = profile.experience || '';
+    if (locEl) locEl.value = profile.location || '';
+    if (specEl) specEl.value = profile.specialties || '';
+
+    if (imgEl && placeholder && removeBtn) {
+      if (profile.photo) {
+        imgEl.src = profile.photo;
+        imgEl.style.display = 'block';
+        placeholder.style.display = 'none';
+        removeBtn.style.display = 'inline-flex';
+      } else {
+        imgEl.src = '';
+        imgEl.style.display = 'none';
+        placeholder.style.display = 'flex';
+        removeBtn.style.display = 'none';
+      }
+    }
+  }
+
+  async saveProfile(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+      name: formData.get('name'),
+      bio: formData.get('bio'),
+      experience: formData.get('experience'),
+      location: formData.get('location'),
+      specialties: formData.get('specialties')
+    };
+
+    try {
+      // Handle profile photo upload if present (from #profile-image-input)
+      const inputEl = document.getElementById('profile-image-input');
+      const photoFile = inputEl?.files?.[0];
+      if (photoFile) {
+        const dataUrl = await this.readFileAsDataUrl(photoFile);
+        const photoUrl = await uploadProfilePhotoViaFunction(dataUrl);
+        data.photo = photoUrl;
+      }
+
+      await FirebaseAPI.updateAdminProfile(data);
+      this.showToast('Profile updated successfully!');
+      await this.loadProfile();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      this.showToast('Error saving profile', 'error');
+    }
+  }
+
+  // Legacy method removed: uploads are performed via Firebase Functions to keep secrets server-side
+
+  async removeProfilePhoto() {
+    if (confirm('Are you sure you want to remove your profile photo?')) {
+      try {
+        await FirebaseAPI.removeAdminProfilePhoto();
+        this.showToast('Profile photo removed successfully!');
+        await this.loadProfile();
+      } catch (error) {
+        console.error('Error removing profile photo:', error);
+        this.showToast('Error removing profile photo', 'error');
+      }
+    }
+  }
+
+  setupProfileImageHandlers() {
+    const uploadBtn = document.getElementById('upload-profile-image');
+    const removeBtn = document.getElementById('remove-profile-image');
+    const inputEl = document.getElementById('profile-image-input');
+    const imgEl = document.getElementById('profile-image-preview');
+    const placeholder = document.getElementById('profile-placeholder');
+
+    if (uploadBtn && inputEl) {
+      uploadBtn.addEventListener('click', () => inputEl.click());
+    }
+    if (inputEl && imgEl && placeholder) {
+      inputEl.addEventListener('change', () => {
+        const file = inputEl.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          imgEl.src = e.target.result;
+          imgEl.style.display = 'block';
+          placeholder.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    if (removeBtn) {
+      removeBtn.addEventListener('click', async () => {
+        try {
+          await FirebaseAPI.removeAdminProfilePhoto();
+          if (imgEl) { imgEl.src = ''; imgEl.style.display = 'none'; }
+          if (placeholder) placeholder.style.display = 'flex';
+          removeBtn.style.display = 'none';
+          this.showToast('Profile photo removed successfully!');
+        } catch (err) {
+          console.error('Remove profile photo error:', err);
+          this.showToast('Error removing profile photo', 'error');
+        }
+      });
     }
   }
 

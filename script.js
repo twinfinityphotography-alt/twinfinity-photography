@@ -22,7 +22,7 @@ const db = getFirestore(app);
 let CONFIG = {
   theme: 'vibrant',
   email: 'twinfinitycaptures@gmail.com',
-  phoneNumber: '923185459061'
+  phoneNumber: '923185459061',
   socials: {
     instagram: 'https://www.instagram.com/twinfinitycaptures?igsh=NmpkbWd1czlkeWtw',
     facebook: 'https://facebook.com/yourprofile',
@@ -97,6 +97,12 @@ async function loadConfigFromFirebase() {
     const foundersDoc = await getDoc(doc(db, 'settings', 'founders'));
     if (foundersDoc.exists()) {
       CONFIG.founders = foundersDoc.data();
+    }
+
+    // Load admin profile (used to display photo and bio in founders section)
+    const adminProfileDoc = await getDoc(doc(db, 'settings', 'adminProfile'));
+    if (adminProfileDoc.exists()) {
+      CONFIG.adminProfile = adminProfileDoc.data();
     }
     
     console.log('Configuration loaded from Firebase:', CONFIG);
@@ -309,7 +315,7 @@ async function sendToWhatsApp() {
     return;
   }
 
-<<<<<<< HEAD
+// CLEANED MERGE CONFLICT START
   const submitButton = document.querySelector('#booking-form button[type="submit"]');
   const originalText = submitButton.textContent;
   
@@ -340,10 +346,10 @@ async function sendToWhatsApp() {
     // Reset form
     document.getElementById('booking-form').reset();
     
-    // Optional: Still send WhatsApp message
+    // Optional: Also open WhatsApp
     const phoneNumber = sanitizePhone(CONFIG.phoneNumber);
-    const raw = `Hello Twinfinity Photography ✨,\n` +
-      `I'd like to book a session with the following details:\n\n` +
+    const raw = `Hello Twinfinity Captures ✨,\n` +
+      `I’d like to book a session with the following details:\n\n` +
       `👤 Name: ${name}\n` +
       `📧 Email: ${email}\n` +
       `📞 Phone: ${phone}\n` +
@@ -361,7 +367,7 @@ async function sendToWhatsApp() {
     `📸 Event Type: ${eventType}\n` +
     `📝 Notes: ${message}\n\n` +
     `Looking forward to your response!`;
->>>>>>> 5ee967cbd1b1209218c41e9fdfde72cadfe1f050
+// CLEANED MERGE CONFLICT END
 
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(raw)}`;
     window.open(url, '_blank');
@@ -659,6 +665,36 @@ async function loadDynamicContent() {
     const aboutText = document.querySelector('#about p');
     if (aboutText && CONFIG.aboutText) {
       aboutText.textContent = CONFIG.aboutText;
+    }
+
+    // Update founders section copy (title + first paragraph) if available
+    const foundersTitleEl = document.querySelector('#founders .section-title');
+    const foundersParas = document.querySelectorAll('#founders .founders-copy p');
+    if (CONFIG.founders) {
+      if (foundersTitleEl && CONFIG.founders.title) foundersTitleEl.textContent = CONFIG.founders.title;
+      if (foundersParas[0] && CONFIG.founders.description) foundersParas[0].textContent = CONFIG.founders.description;
+    }
+
+    // Render founders photo: if adminProfile.photo exists, show it; else fall back to assets
+    const photosHolder = document.getElementById('founders-photos');
+    if (photosHolder) {
+      photosHolder.innerHTML = '';
+      if (CONFIG?.adminProfile?.photo) {
+        const card = document.createElement('div');
+        card.className = 'founder-card parallax';
+        card.setAttribute('data-depth', '12');
+        card.style.setProperty('--dur', '12s');
+        const img = document.createElement('img');
+        img.alt = CONFIG.adminProfile.name || 'Founder';
+        img.src = CONFIG.adminProfile.photo;
+        const shine = document.createElement('span');
+        shine.className = 'shine';
+        card.appendChild(img);
+        card.appendChild(shine);
+        photosHolder.appendChild(card);
+      } else if (CONFIG?.founders?.count) {
+        loadFounders(Number(CONFIG.founders.count));
+      }
     }
     
     // Load testimonials

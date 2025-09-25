@@ -2,6 +2,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 import { FallbackStorage } from './fallback-storage.js';
 
 const firebaseConfig = {
@@ -18,6 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const functions = getFunctions(app);
 
 // Initialize fallback storage
 const fallbackStorage = new FallbackStorage();
@@ -26,12 +28,9 @@ let useFirebase = true;
 // Test Firebase connection on initialization
 let firebaseReady = false;
 
-// Cloudinary configuration
+// Cloudinary configuration used client-side only for building delivery URLs (no secrets here)
 const CLOUDINARY_CONFIG = {
-  cloudName: 'dmodvacdz',
-  apiKey: '978584274776188',
-  apiSecret: '_T87k_0TinGCvf7MN8csLL8Jpw0',
-  uploadPreset: 'twinfinity_photos' // We'll create this preset
+  cloudName: 'dmodvacdz'
 };
 
 // Initialize default collections when admin first logs in
@@ -153,6 +152,7 @@ async function initializeDefaultCollections() {
           text: 'They captured our wedding beautifully — every tiny moment! Highly recommended.',
           author: 'Ayesha & Hamza',
           active: true,
+          published: true,
           order: 1
         },
         {
@@ -160,6 +160,7 @@ async function initializeDefaultCollections() {
           text: 'Professional team, punctual, and incredible results for our corporate gala.',
           author: 'NEXA Corp',
           active: true,
+          published: true,
           order: 2
         },
         {
@@ -167,6 +168,7 @@ async function initializeDefaultCollections() {
           text: 'Our pre-wedding shoot felt effortless and the photos look like magazine covers.',
           author: 'Sara & Daniyal',
           active: true,
+          published: true,
           order: 3
         }
       ];
@@ -178,11 +180,22 @@ async function initializeDefaultCollections() {
         });
       }
 
-      // Founders info
+      // Founders info (site copy for founders section)
       await setDoc(doc(db, 'settings', 'founders'), {
         count: 2,
         title: 'Meet the Sisters behind Twinfinity',
         description: 'Two creative storytellers, dedicated to capturing emotion with elegance and detail. From intimate portraits to grand celebrations, their vision blends artistry with timeless style.',
+        createdAt: new Date()
+      });
+
+      // Admin profile default doc (used for founders photo/content if desired)
+      await setDoc(doc(db, 'settings', 'adminProfile'), {
+        name: 'Twinfinity Team',
+        bio: 'Professional photography team specializing in weddings, events, and portraits.',
+        experience: '5+ years',
+        location: 'Pakistan',
+        specialties: 'Weddings, Events, Portraits',
+        photo: null,
         createdAt: new Date()
       });
 
@@ -458,6 +471,13 @@ const FirebaseAPI = {
     );
   },
 
+  async removeAdminProfilePhoto() {
+    return this._callWithFallback(
+      () => updateDoc(doc(db, 'settings', 'adminProfile'), { photo: null, updatedAt: new Date() }),
+      () => fallbackStorage.removeAdminProfilePhoto()
+    );
+  },
+
   // Testimonials
   async getTestimonials() {
     return this._callWithFallback(
@@ -491,6 +511,19 @@ const FirebaseAPI = {
   }
 };
 
+// Cloud Functions helpers for uploads (keeps secrets server-side)
+async function uploadImageViaFunction(fileDataUrl, folder, transformation = null) {
+  const callable = httpsCallable(functions, 'uploadImage');
+  const res = await callable({ fileDataUrl, folder, transformation });
+  return res.data?.secureUrl;
+}
+
+async function uploadProfilePhotoViaFunction(fileDataUrl) {
+  const callable = httpsCallable(functions, 'uploadProfilePhoto');
+  const res = await callable({ fileDataUrl });
+  return res.data?.secureUrl;
+}
+
 // Export functions and objects
 export {
   auth,
@@ -500,5 +533,7 @@ export {
   onAuthChange,
   FirebaseAPI,
   CLOUDINARY_CONFIG,
-  initializeDefaultCollections
+  initializeDefaultCollections,
+  uploadImageViaFunction,
+  uploadProfilePhotoViaFunction
 };

@@ -39,9 +39,9 @@ class FallbackStorage {
         { id: 'drone', name: 'Drone Coverage', price: 10000, currency: 'PKR', unit: 'per event', active: true, order: 3 }
       ],
       testimonials: [
-        { id: 'testimonial1', text: 'They captured our wedding beautifully — every tiny moment! Highly recommended.', author: 'Ayesha & Hamza', active: true, order: 1 },
-        { id: 'testimonial2', text: 'Professional team, punctual, and incredible results for our corporate gala.', author: 'NEXA Corp', active: true, order: 2 },
-        { id: 'testimonial3', text: 'Our pre-wedding shoot felt effortless and the photos look like magazine covers.', author: 'Sara & Daniyal', active: true, order: 3 }
+        { id: 'testimonial1', text: 'They captured our wedding beautifully — every tiny moment! Highly recommended.', author: 'Ayesha & Hamza', active: true, published: true, order: 1 },
+        { id: 'testimonial2', text: 'Professional team, punctual, and incredible results for our corporate gala.', author: 'NEXA Corp', active: true, published: true, order: 2 },
+        { id: 'testimonial3', text: 'Our pre-wedding shoot felt effortless and the photos look like magazine covers.', author: 'Sara & Daniyal', active: true, published: true, order: 3 }
       ],
       settings: {
         siteName: 'Twinfinity Photography',
