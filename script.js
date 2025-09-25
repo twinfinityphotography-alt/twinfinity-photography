@@ -155,7 +155,7 @@ function sendToWhatsApp() {
 
   const phoneNumber = sanitizePhone(CONFIG.phoneNumber);
 
-  const raw = `Hello Twinfinity Photography ✨,\n` +
+  const raw = `Hello Twinfinity Captures ✨,\n` +
     `I’d like to book a session with the following details:\n\n` +
     `👤 Name: ${name}\n` +
     `📧 Email: ${email}\n` +
