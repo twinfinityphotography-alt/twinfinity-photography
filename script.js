@@ -1,38 +1,179 @@
 // Twinfinity Photography front-end interactions
+// Import Firebase functions for dynamic content
+import { getFirestore, doc, getDoc, collection, getDocs, addDoc, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 
-// Site-wide config: update these once and the site updates everywhere.
-const CONFIG = {
-  theme: 'vibrant', // options: 'muted' | 'vibrant'
+// Firebase configuration (same as admin)
+const firebaseConfig = {
+  apiKey: "AIzaSyCAmMqSfWvPXoFQnmKdiM2lf9A3ik1W2sI",
+  authDomain: "twinfinityphotography-eea27.firebaseapp.com",
+  projectId: "twinfinityphotography-eea27",
+  storageBucket: "twinfinityphotography-eea27.firebasestorage.app",
+  messagingSenderId: "264522763978",
+  appId: "1:264522763978:web:d46ffb2adc64834095ae33",
+  measurementId: "G-5NLLKF6E24"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Dynamic CONFIG object - will be populated from Firebase
+let CONFIG = {
+  theme: 'vibrant',
   email: 'twinfinityphotography@gmail.com',
-  phoneNumber: '923175446886', // international format, no plus
+  phoneNumber: '923175446886',
   socials: {
     instagram: 'https://www.instagram.com/twinfinitycaptures?igsh=NmpkbWd1czlkeWtw',
     facebook: 'https://facebook.com/yourprofile',
     whatsapp: 'https://wa.me/923175446886'
   },
-  galleries: {
-    wedding: 14,
-    event: 7,
-    portrait: 8,
-  },
+  galleries: {},
   founders: { count: 2 },
-  services: [
-    { id: 'photography', name: 'Photography', price: 25000, currency: 'PKR', unit: 'per day', tag: 'Full-day', desc: 'Full-day photoshoot. Travel and accommodation not included.' },
-    { id: 'videography', name: 'Videography', price: 40000, currency: 'PKR', unit: 'per day', tag: 'Full-day', desc: 'Full-day videography coverage. Travel and accommodation not included.' },
-  ],
-  addons: [
-    { id: 'album-basic', name: 'Photo Album (Basic)', price: 12000, currency: 'PKR', unit: 'starting' },
-    { id: 'album-premium', name: 'Photo Album (Premium 12x36)', price: 18000, currency: 'PKR', unit: 'starting' },
-    { id: 'drone', name: 'Drone Coverage', price: 10000, currency: 'PKR', unit: 'per event' },
-  ],
+  services: [],
+  addons: [],
+  heroTitle: 'Timeless stories, beautifully told',
+  heroSubtitle: 'Elegant wedding, event, and portrait photography that feels refined, modern, and unforgettable.',
+  aboutText: 'We are Twinfinity Photography — storytellers dedicated to preserving your most meaningful moments through timeless imagery.',
+  testimonials: []
 };
+
+// Load configuration from Firebase
+async function loadConfigFromFirebase() {
+  try {
+    console.log('Loading configuration from Firebase...');
+    
+    // Load site settings
+    const settingsDoc = await getDoc(doc(db, 'settings', 'site'));
+    if (settingsDoc.exists()) {
+      const settings = settingsDoc.data();
+      CONFIG.email = settings.email || CONFIG.email;
+      CONFIG.phoneNumber = settings.phone || CONFIG.phoneNumber;
+      CONFIG.theme = settings.theme || CONFIG.theme;
+      CONFIG.heroTitle = settings.heroTitle || CONFIG.heroTitle;
+      CONFIG.heroSubtitle = settings.heroSubtitle || CONFIG.heroSubtitle;
+      CONFIG.aboutText = settings.aboutText || CONFIG.aboutText;
+      CONFIG.siteName = settings.siteName || 'Twinfinity Photography';
+      
+      if (settings.socialLinks) {
+        CONFIG.socials = { ...CONFIG.socials, ...settings.socialLinks };
+      }
+    }
+    
+    // Load categories and build galleries object
+    const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
+    const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Build galleries object with image counts
+    for (const category of categories) {
+      if (category.active) {
+        const imagesSnapshot = await getDocs(query(
+          collection(db, 'gallery'), 
+          where('categoryId', '==', category.id)
+        ));
+        CONFIG.galleries[category.id] = imagesSnapshot.docs.length;
+      }
+    }
+    
+    // Load services
+    const servicesSnapshot = await getDocs(query(collection(db, 'services'), orderBy('order')));
+    CONFIG.services = servicesSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(service => service.active);
+    
+    // Load add-ons
+    const addonsSnapshot = await getDocs(query(collection(db, 'addons'), orderBy('order')));
+    CONFIG.addons = addonsSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(addon => addon.active);
+    
+    // Load testimonials
+    const testimonialsSnapshot = await getDocs(query(collection(db, 'testimonials'), orderBy('order')));
+    CONFIG.testimonials = testimonialsSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(testimonial => testimonial.active);
+    
+    // Load founders info
+    const foundersDoc = await getDoc(doc(db, 'settings', 'founders'));
+    if (foundersDoc.exists()) {
+      CONFIG.founders = foundersDoc.data();
+    }
+    
+    console.log('Configuration loaded from Firebase:', CONFIG);
+  } catch (error) {
+    console.error('Error loading configuration from Firebase:', error);
+    console.log('Using default configuration');
+  }
+}
 
 function sanitizePhone(num) {
   return (num || '').toString().replace(/\D/g, '');
 }
 
-// 1) Gallery Loader
-function loadGallery(category, count, targetSelector) {
+// 1) Gallery Loader - Fetch images from Firebase
+async function loadGallery(category, count, targetSelector) {
+  const container = document.querySelector(targetSelector) || document.querySelector(`#gallery-${category}`);
+  if (!container) return;
+
+  try {
+    // Fetch images from Firebase
+    const imagesSnapshot = await getDocs(query(
+      collection(db, 'gallery'),
+      where('categoryId', '==', category),
+      orderBy('order')
+    ));
+    
+    const images = imagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    if (images.length === 0) {
+      console.log(`No images found for category: ${category}`);
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    
+    images.forEach((image, index) => {
+      const tile = document.createElement('div');
+      tile.className = 'tile reveal';
+      tile.setAttribute('data-tilt', '');
+
+      const img = document.createElement('img');
+      img.alt = image.alt || `${category} image ${index + 1}`;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.src = image.url;
+
+      // Error handling for Cloudinary images
+      img.onerror = () => {
+        console.warn(`Failed to load image: ${image.url}`);
+        tile.style.display = 'none';
+      };
+
+      // For lightbox
+      img.addEventListener('click', () => openLightbox(img.src, img.alt));
+
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+      overlay.appendChild(label);
+
+      tile.appendChild(img);
+      tile.appendChild(overlay);
+      frag.appendChild(tile);
+    });
+    
+    container.appendChild(frag);
+  } catch (error) {
+    console.error(`Error loading gallery for ${category}:`, error);
+    // Fallback to old method if Firebase fails
+    loadGalleryFallback(category, count, targetSelector);
+  }
+}
+
+// Fallback gallery loader (original method)
+function loadGalleryFallback(category, count, targetSelector) {
   const container = document.querySelector(targetSelector) || document.querySelector(`#gallery-${category}`);
   if (!container) return;
 
@@ -145,27 +286,83 @@ function setupScrollReveal() {
   });
 }
 
-// 5) Booking form -> WhatsApp
-function sendToWhatsApp() {
-  const name = document.getElementById('name').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const date = document.getElementById('date').value;
-  const eventType = document.getElementById('event').value;
-  const message = document.getElementById('message').value.trim();
+// 5) Booking form -> Firebase + WhatsApp
+async function sendToWhatsApp() {
+  const name = document.getElementById('name')?.value?.trim();
+  const email = document.getElementById('email')?.value?.trim();
+  const phone = document.getElementById('phone')?.value?.trim();
+  const address = document.getElementById('address')?.value?.trim();
+  const date = document.getElementById('date')?.value;
+  const eventType = document.getElementById('event')?.value;
+  const message = document.getElementById('message')?.value?.trim();
 
-  const phoneNumber = sanitizePhone(CONFIG.phoneNumber);
+  // Basic validation
+  if (!name || !email || !phone || !address || !date || !eventType) {
+    // Find the first empty required field and focus it
+    const fields = [name, email, phone, address, date, eventType];
+    const fieldNames = ['name', 'email', 'phone', 'address', 'date', 'event'];
+    const firstEmpty = fields.findIndex(field => !field);
+    const firstEmptyElement = document.getElementById(fieldNames[firstEmpty]);
+    firstEmptyElement?.focus();
+    
+    alert('Please fill in all required fields.');
+    return;
+  }
 
-  const raw = `Hello Twinfinity Photography ✨,\n` +
-    `I’d like to book a session with the following details:\n\n` +
-    `👤 Name: ${name}\n` +
-    `📧 Email: ${email}\n` +
-    `📅 Event Date: ${date}\n` +
-    `📸 Event Type: ${eventType}\n` +
-    `📝 Notes: ${message}\n\n` +
-    `Looking forward to your response!`;
+  const submitButton = document.querySelector('#booking-form button[type="submit"]');
+  const originalText = submitButton.textContent;
+  
+  try {
+    // Show loading state
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
+    
+    // Save order to Firebase
+    const orderData = {
+      name,
+      email,
+      phone,
+      address,
+      date,
+      eventType,
+      message: message || '',
+      status: 'new',
+      createdAt: new Date()
+    };
+    
+    await addDoc(collection(db, 'orders'), orderData);
+    console.log('Order saved to Firebase');
+    
+    // Show success message
+    alert('Booking request submitted successfully! We will contact you soon.');
+    
+    // Reset form
+    document.getElementById('booking-form').reset();
+    
+    // Optional: Still send WhatsApp message
+    const phoneNumber = sanitizePhone(CONFIG.phoneNumber);
+    const raw = `Hello Twinfinity Photography ✨,\n` +
+      `I'd like to book a session with the following details:\n\n` +
+      `👤 Name: ${name}\n` +
+      `📧 Email: ${email}\n` +
+      `📞 Phone: ${phone}\n` +
+      `📍 Address: ${address}\n` +
+      `📅 Event Date: ${date}\n` +
+      `📸 Event Type: ${eventType}\n` +
+      `📝 Notes: ${message || 'No additional notes'}\n\n` +
+      `Looking forward to your response!`;
 
-  const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(raw)}`;
-  window.open(url, '_blank');
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(raw)}`;
+    window.open(url, '_blank');
+    
+  } catch (error) {
+    console.error('Error saving order:', error);
+    alert('There was an error submitting your request. Please try again or contact us directly.');
+  } finally {
+    // Reset button state
+    submitButton.disabled = false;
+    submitButton.textContent = originalText;
+  }
 }
 
 function setupBookingForm() {
@@ -180,7 +377,7 @@ function setupBookingForm() {
 function formatMoney(amount, currency) {
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'PKR', maximumFractionDigits: 0 }).format(amount);
-  } catch (_) {
+  } catch {
     // Fallback if locale/currency not supported
     return `${currency || 'PKR'} ${amount}`;
   }
@@ -193,12 +390,39 @@ function renderServices() {
   (CONFIG.services || []).forEach((svc) => {
     const card = document.createElement('div');
     card.className = 'card reveal';
-    const priceText = `${formatMoney(svc.price, svc.currency)} <span class="unit">${svc.unit || ''}</span>`;
-    card.innerHTML = `
-      <h3 class="service-title">${svc.name}${svc.tag ? `<span class=\"badge\">${svc.tag}</span>` : ''}</h3>
-      <p class="service-desc">${svc.desc || ''}</p>
-      <div class="price">${priceText}</div>
-    `;
+    
+    // Create title element safely
+    const title = document.createElement('h3');
+    title.className = 'service-title';
+    title.textContent = svc.name;
+    
+    if (svc.tag) {
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = svc.tag;
+      title.appendChild(badge);
+    }
+    
+    // Create description element
+    const desc = document.createElement('p');
+    desc.className = 'service-desc';
+    desc.textContent = svc.desc || '';
+    
+    // Create price element
+    const priceDiv = document.createElement('div');
+    priceDiv.className = 'price';
+    priceDiv.textContent = formatMoney(svc.price, svc.currency);
+    
+    if (svc.unit) {
+      const unit = document.createElement('span');
+      unit.className = 'unit';
+      unit.textContent = svc.unit;
+      priceDiv.appendChild(unit);
+    }
+    
+    card.appendChild(title);
+    card.appendChild(desc);
+    card.appendChild(priceDiv);
     list.appendChild(card);
   });
 
@@ -209,7 +433,13 @@ function renderServices() {
     (CONFIG.addons || []).forEach((ad) => {
       const chip = document.createElement('span');
       chip.className = 'chip reveal';
-      chip.innerHTML = `${ad.name} <span class="chip-price">${formatMoney(ad.price, ad.currency)}${ad.unit ? `/${ad.unit}` : ''}</span>`;
+      chip.textContent = ad.name + ' ';
+      
+      const price = document.createElement('span');
+      price.className = 'chip-price';
+      price.textContent = formatMoney(ad.price, ad.currency) + (ad.unit ? `/${ad.unit}` : '');
+      
+      chip.appendChild(price);
       addonsEl.appendChild(chip);
     });
   }
@@ -394,31 +624,171 @@ function applyTheme() {
   root.classList.add(t === 'vibrant' ? 'theme-vibrant' : 'theme-muted');
 }
 
-// Init
-window.addEventListener('DOMContentLoaded', () => {
-  applyTheme();
-  // Founders photos
-  if (CONFIG.founders?.count) loadFounders(Number(CONFIG.founders.count));
-
-  // Populate galleries from sequentially named files based on CONFIG
-  const entries = Object.entries(CONFIG.galleries || {});
-  for (const [category, count] of entries) {
-    loadGallery(category, Number(count) || 0, `#gallery-${category}`);
+// Dynamic content loading functions
+async function loadDynamicContent() {
+  try {
+    // Update hero content
+    const heroTitle = document.querySelector('.hero h1');
+    const heroSubtitle = document.querySelector('.hero .lead');
+    
+    if (heroTitle && CONFIG.heroTitle) {
+      const titleWords = CONFIG.heroTitle.split(' ');
+      const accentWordIndex = titleWords.findIndex(word => word.toLowerCase() === 'timeless');
+      if (accentWordIndex !== -1) {
+        titleWords[accentWordIndex] = `<span class="accent">${titleWords[accentWordIndex]}</span>`;
+      }
+      heroTitle.innerHTML = titleWords.join(' ');
+    }
+    
+    if (heroSubtitle && CONFIG.heroSubtitle) {
+      heroSubtitle.textContent = CONFIG.heroSubtitle;
+    }
+    
+    // Update about section
+    const aboutText = document.querySelector('#about p');
+    if (aboutText && CONFIG.aboutText) {
+      aboutText.textContent = CONFIG.aboutText;
+    }
+    
+    // Load testimonials
+    if (CONFIG.testimonials && CONFIG.testimonials.length > 0) {
+      loadTestimonials();
+    }
+    
+    // Load dynamic categories for event type dropdown
+    await loadEventTypeOptions();
+    
+  } catch (error) {
+    console.error('Error loading dynamic content:', error);
   }
+}
 
-  setupSmoothScroll();
-  setupScrollReveal();
-  setupBookingForm();
-  initContactLinks();
-  renderServices();
-  setupHeaderScroll();
-  setupSidebar();
-  setupFilters();
-  setupTilt();
-  setupParallax();
-  setupLogo();
+// Load testimonials
+function loadTestimonials() {
+  const testimonialsContainer = document.querySelector('.testimonials');
+  if (!testimonialsContainer || !CONFIG.testimonials.length) return;
+  
+  testimonialsContainer.innerHTML = CONFIG.testimonials.map(testimonial => `
+    <blockquote class="testimonial reveal">
+      "${testimonial.text}"
+      <span>— ${testimonial.author}</span>
+    </blockquote>
+  `).join('');
+}
 
-  // Footer year
-  const yEl = document.getElementById('year');
-  if (yEl) yEl.textContent = new Date().getFullYear();
+// Load event type options from categories
+async function loadEventTypeOptions() {
+  try {
+    const eventSelect = document.getElementById('event');
+    if (!eventSelect) return;
+    
+    // Keep default options and add dynamic categories
+    const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
+    const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    categories.forEach(category => {
+      if (category.active && category.name) {
+        const option = document.createElement('option');
+        option.value = category.name;
+        option.textContent = category.name;
+        eventSelect.appendChild(option);
+      }
+    });
+  } catch (error) {
+    console.error('Error loading event type options:', error);
+  }
+}
+
+// Update setupFilters to handle dynamic categories
+async function setupDynamicFilters() {
+  try {
+    const buttonsContainer = document.querySelector('.filters');
+    const categoriesContainer = document.querySelector('#portfolio .container');
+    
+    if (!buttonsContainer || !categoriesContainer) return;
+    
+    // Get categories from Firebase
+    const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
+    const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Clear existing filter buttons (except 'All')
+    const allButton = buttonsContainer.querySelector('[data-filter="all"]');
+    buttonsContainer.innerHTML = '';
+    buttonsContainer.appendChild(allButton);
+    
+    // Add dynamic category filters
+    categories.forEach(category => {
+      if (category.active) {
+        const button = document.createElement('button');
+        button.className = 'filter';
+        button.setAttribute('data-filter', category.id);
+        button.textContent = category.name;
+        buttonsContainer.appendChild(button);
+        
+        // Create category section if it doesn't exist
+        let categorySection = document.querySelector(`[data-category="${category.id}"]`);
+        if (!categorySection) {
+          categorySection = document.createElement('div');
+          categorySection.className = 'category reveal';
+          categorySection.setAttribute('data-category', category.id);
+          categorySection.innerHTML = `
+            <h3>${category.name}</h3>
+            <div class="gallery" id="gallery-${category.id}" data-category="${category.id}"></div>
+          `;
+          categoriesContainer.appendChild(categorySection);
+        }
+      }
+    });
+    
+    // Setup filter functionality
+    setupFilters();
+    
+  } catch (error) {
+    console.error('Error setting up dynamic filters:', error);
+  }
+}
+
+// Init
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Load configuration from Firebase first
+    await loadConfigFromFirebase();
+    
+    // Apply theme
+    applyTheme();
+    
+    // Load dynamic content
+    await loadDynamicContent();
+    
+    // Setup dynamic filters and categories
+    await setupDynamicFilters();
+    
+    // Founders photos
+    if (CONFIG.founders?.count) loadFounders(Number(CONFIG.founders.count));
+
+    // Populate galleries from Firebase
+    const entries = Object.entries(CONFIG.galleries || {});
+    for (const [category, count] of entries) {
+      await loadGallery(category, Number(count) || 0, `#gallery-${category}`);
+    }
+
+    setupSmoothScroll();
+    setupScrollReveal();
+    setupBookingForm();
+    initContactLinks();
+    renderServices();
+    setupHeaderScroll();
+    setupSidebar();
+    setupTilt();
+    setupParallax();
+    setupLogo();
+
+    // Footer year
+    const yEl = document.getElementById('year');
+    if (yEl) yEl.textContent = new Date().getFullYear();
+    
+    console.log('Site initialized successfully with Firebase data');
+  } catch (error) {
+    console.error('Error initializing site:', error);
+  }
 });

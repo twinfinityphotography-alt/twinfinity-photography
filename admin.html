@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Twinfinity Photography</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin-styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p>Loading Admin Dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Login Form -->
+  <div id="login-container" class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <h1>Twinfinity Photography</h1>
+        <h2>Admin Dashboard</h2>
+      </div>
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required placeholder="admin@gmail.com">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required placeholder="Enter password">
+        </div>
+        <button type="submit" class="login-btn" id="login-btn">
+          <span class="btn-text">Sign In</span>
+          <span class="btn-loading" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i> Signing in...
+          </span>
+        </button>
+        <div id="login-error" class="login-error" style="display: none;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Dashboard -->
+  <div id="dashboard-container" class="dashboard-container" style="display: none;">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>Twinfinity</h1>
+        <p>Admin Dashboard</p>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-section="overview">
+          <i class="fas fa-chart-line"></i>
+          <span>Overview</span>
+        </a>
+        <a href="#" class="nav-item" data-section="categories">
+          <i class="fas fa-folder"></i>
+          <span>Categories</span>
+        </a>
+        <a href="#" class="nav-item" data-section="gallery">
+          <i class="fas fa-images"></i>
+          <span>Gallery</span>
+        </a>
+        <a href="#" class="nav-item" data-section="services">
+          <i class="fas fa-concierge-bell"></i>
+          <span>Services</span>
+        </a>
+        <a href="#" class="nav-item" data-section="orders">
+          <i class="fas fa-shopping-bag"></i>
+          <span>Orders</span>
+          <span class="badge" id="orders-badge">0</span>
+        </a>
+        <a href="#" class="nav-item" data-section="testimonials">
+          <i class="fas fa-star"></i>
+          <span>Testimonials</span>
+        </a>
+        <a href="#" class="nav-item" data-section="settings">
+          <i class="fas fa-cog"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" id="logout-btn">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="content-header">
+        <div class="header-content">
+          <h1 id="page-title">Dashboard Overview</h1>
+          <div class="header-actions">
+            <button class="btn btn-primary" id="view-site-btn">
+              <i class="fas fa-external-link-alt"></i>
+              View Site
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Overview Section -->
+      <section id="overview-section" class="content-section active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-folder"></i>
+            </div>
+            <div class="stat-content">
+              <h3 id="categories-count">0</h3>
+              <p>Categories</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-images"></i>
+            </div>
+            <div class="stat-content">
+              <h3 id="gallery-count">0</h3>
+              <p>Gallery Images</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-shopping-bag"></i>
+            </div>
+            <div class="stat-content">
+              <h3 id="orders-count">0</h3>
+              <p>Total Orders</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-star"></i>
+            </div>
+            <div class="stat-content">
+              <h3 id="testimonials-count">0</h3>
+              <p>Testimonials</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="recent-activity">
+          <div class="card">
+            <div class="card-header">
+              <h3>Recent Orders</h3>
+            </div>
+            <div class="card-content">
+              <div id="recent-orders">
+                <!-- Orders will be loaded here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Categories Section -->
+      <section id="categories-section" class="content-section">
+        <div class="section-header">
+          <h2>Manage Categories</h2>
+          <button class="btn btn-primary" id="add-category-btn">
+            <i class="fas fa-plus"></i>
+            Add Category
+          </button>
+        </div>
+        <div class="card">
+          <div class="card-content">
+            <div id="categories-list">
+              <!-- Categories will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gallery Section -->
+      <section id="gallery-section" class="content-section">
+        <div class="section-header">
+          <h2>Gallery Management</h2>
+          <div class="gallery-controls">
+            <select id="gallery-category-filter" class="form-control">
+              <option value="">All Categories</option>
+            </select>
+            <button class="btn btn-primary" id="upload-images-btn">
+              <i class="fas fa-upload"></i>
+              Upload Images
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-content">
+            <div id="gallery-grid" class="gallery-grid">
+              <!-- Gallery images will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Services Section -->
+      <section id="services-section" class="content-section">
+        <div class="section-header">
+          <h2>Services & Pricing</h2>
+          <button class="btn btn-primary" id="add-service-btn">
+            <i class="fas fa-plus"></i>
+            Add Service
+          </button>
+        </div>
+        <div class="services-container">
+          <div class="card">
+            <div class="card-header">
+              <h3>Services</h3>
+            </div>
+            <div class="card-content">
+              <div id="services-list">
+                <!-- Services will be loaded here -->
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Add-ons</h3>
+              <button class="btn btn-secondary btn-sm" id="add-addon-btn">
+                <i class="fas fa-plus"></i>
+                Add Add-on
+              </button>
+            </div>
+            <div class="card-content">
+              <div id="addons-list">
+                <!-- Add-ons will be loaded here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders Section -->
+      <section id="orders-section" class="content-section">
+        <div class="section-header">
+          <h2>Client Orders</h2>
+          <div class="orders-filters">
+            <select id="orders-status-filter" class="form-control">
+              <option value="">All Status</option>
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-content">
+            <div id="orders-list">
+              <!-- Orders will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Testimonials Section -->
+      <section id="testimonials-section" class="content-section">
+        <div class="section-header">
+          <h2>Client Testimonials</h2>
+          <button class="btn btn-primary" id="add-testimonial-btn">
+            <i class="fas fa-plus"></i>
+            Add Testimonial
+          </button>
+        </div>
+        <div class="card">
+          <div class="card-content">
+            <div id="testimonials-list">
+              <!-- Testimonials will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Section -->
+      <section id="settings-section" class="content-section">
+        <div class="section-header">
+          <h2>Site Settings</h2>
+        </div>
+        <div class="settings-container">
+          <div class="card">
+            <div class="card-header">
+              <h3>General Settings</h3>
+            </div>
+            <div class="card-content">
+              <form id="general-settings-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="site-name">Site Name</label>
+                    <input type="text" id="site-name" name="siteName" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="site-email">Contact Email</label>
+                    <input type="email" id="site-email" name="email" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="site-phone">Phone Number</label>
+                    <input type="text" id="site-phone" name="phone" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="site-theme">Theme</label>
+                    <select id="site-theme" name="theme">
+                      <option value="vibrant">Vibrant</option>
+                      <option value="muted">Muted</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="hero-title">Hero Title</label>
+                  <input type="text" id="hero-title" name="heroTitle" required>
+                </div>
+                <div class="form-group">
+                  <label for="hero-subtitle">Hero Subtitle</label>
+                  <textarea id="hero-subtitle" name="heroSubtitle" rows="2" required></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="about-text">About Text</label>
+                  <textarea id="about-text" name="aboutText" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i>
+                  Save Changes
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Social Media Links</h3>
+            </div>
+            <div class="card-content">
+              <form id="social-settings-form">
+                <div class="form-group">
+                  <label for="instagram-link">Instagram URL</label>
+                  <input type="url" id="instagram-link" name="instagram">
+                </div>
+                <div class="form-group">
+                  <label for="facebook-link">Facebook URL</label>
+                  <input type="url" id="facebook-link" name="facebook">
+                </div>
+                <div class="form-group">
+                  <label for="whatsapp-link">WhatsApp URL</label>
+                  <input type="url" id="whatsapp-link" name="whatsapp">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i>
+                  Update Social Links
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <!-- Category Modal -->
+  <div id="category-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="category-modal-title">Add Category</h3>
+        <button class="modal-close" data-modal="category-modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form id="category-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="category-name">Category Name</label>
+            <input type="text" id="category-name" name="name" required>
+          </div>
+          <div class="form-group">
+            <label for="category-description">Description</label>
+            <textarea id="category-description" name="description" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="category-order">Display Order</label>
+            <input type="number" id="category-order" name="order" min="1" required>
+          </div>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="category-active" name="active" checked>
+              <span class="checkbox-custom"></span>
+              Active
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-modal="category-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Image Upload Modal -->
+  <div id="upload-modal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3>Upload Images</h3>
+        <button class="modal-close" data-modal="upload-modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="upload-category">Select Category</label>
+          <select id="upload-category" required>
+            <option value="">Choose category...</option>
+          </select>
+        </div>
+        <div class="upload-area" id="upload-area">
+          <div class="upload-content">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <h4>Drag & drop images here</h4>
+            <p>or <button type="button" class="btn-link" id="browse-files">browse files</button></p>
+            <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+          </div>
+        </div>
+        <div id="upload-progress" class="upload-progress" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+          </div>
+          <p class="progress-text">Uploading images...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal="upload-modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="upload-images">Upload Images</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Modal -->
+  <div id="service-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="service-modal-title">Add Service</h3>
+        <button class="modal-close" data-modal="service-modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form id="service-form">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="service-name">Service Name</label>
+              <input type="text" id="service-name" name="name" required>
+            </div>
+            <div class="form-group">
+              <label for="service-price">Price</label>
+              <input type="number" id="service-price" name="price" min="0" required>
+            </div>
+            <div class="form-group">
+              <label for="service-currency">Currency</label>
+              <input type="text" id="service-currency" name="currency" value="PKR" required>
+            </div>
+            <div class="form-group">
+              <label for="service-unit">Unit</label>
+              <input type="text" id="service-unit" name="unit" placeholder="per day">
+            </div>
+            <div class="form-group">
+              <label for="service-tag">Tag</label>
+              <input type="text" id="service-tag" name="tag" placeholder="Full-day">
+            </div>
+            <div class="form-group">
+              <label for="service-order">Display Order</label>
+              <input type="number" id="service-order" name="order" min="1" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="service-description">Description</label>
+            <textarea id="service-description" name="description" rows="3" required></textarea>
+          </div>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="service-active" name="active" checked>
+              <span class="checkbox-custom"></span>
+              Active
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-modal="service-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Service</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Testimonial Modal -->
+  <div id="testimonial-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="testimonial-modal-title">Add Testimonial</h3>
+        <button class="modal-close" data-modal="testimonial-modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form id="testimonial-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="testimonial-text">Testimonial Text</label>
+            <textarea id="testimonial-text" name="text" rows="4" required placeholder="Enter the client's testimonial..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="testimonial-author">Author Name</label>
+            <input type="text" id="testimonial-author" name="author" required placeholder="Client Name">
+          </div>
+          <div class="form-group">
+            <label for="testimonial-order">Display Order</label>
+            <input type="number" id="testimonial-order" name="order" min="1" required>
+          </div>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="testimonial-active" name="active" checked>
+              <span class="checkbox-custom"></span>
+              Active
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-modal="testimonial-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Testimonial</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Success Toast -->
+  <div id="toast" class="toast">
+    <div class="toast-content">
+      <i class="fas fa-check-circle"></i>
+      <span id="toast-message">Success!</span>
+    </div>
+  </div>
+
+  <script type="module" src="admin-script.js"></script>
+</body>
+</html>
