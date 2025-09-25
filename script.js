@@ -21,12 +21,12 @@ const db = getFirestore(app);
 // Dynamic CONFIG object - will be populated from Firebase
 let CONFIG = {
   theme: 'vibrant',
-  email: 'twinfinityphotography@gmail.com',
-  phoneNumber: '923175446886',
+  email: 'twinfinitycaptures@gmail.com',
+  phoneNumber: '923185459061'
   socials: {
     instagram: 'https://www.instagram.com/twinfinitycaptures?igsh=NmpkbWd1czlkeWtw',
     facebook: 'https://facebook.com/yourprofile',
-    whatsapp: 'https://wa.me/923175446886'
+    whatsapp: 'https://wa.me/923185459061'
   },
   galleries: {},
   founders: { count: 2 },
@@ -309,6 +309,7 @@ async function sendToWhatsApp() {
     return;
   }
 
+<<<<<<< HEAD
   const submitButton = document.querySelector('#booking-form button[type="submit"]');
   const originalText = submitButton.textContent;
   
@@ -351,6 +352,16 @@ async function sendToWhatsApp() {
       `📸 Event Type: ${eventType}\n` +
       `📝 Notes: ${message || 'No additional notes'}\n\n` +
       `Looking forward to your response!`;
+=======
+  const raw = `Hello Twinfinity Captures ✨,\n` +
+    `I’d like to book a session with the following details:\n\n` +
+    `👤 Name: ${name}\n` +
+    `📧 Email: ${email}\n` +
+    `📅 Event Date: ${date}\n` +
+    `📸 Event Type: ${eventType}\n` +
+    `📝 Notes: ${message}\n\n` +
+    `Looking forward to your response!`;
+>>>>>>> 5ee967cbd1b1209218c41e9fdfde72cadfe1f050
 
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(raw)}`;
     window.open(url, '_blank');
