@@ -3,7 +3,7 @@
 // Site-wide config: update these once and the site updates everywhere.
 const CONFIG = {
   theme: 'vibrant', // options: 'muted' | 'vibrant'
-  email: 'twinfinityphotography@gmail.com',
+  email: 'twinfinitycaptures@gmail.com',
   phoneNumber: '923185459061', // international format, no plus
   socials: {
     instagram: 'https://www.instagram.com/twinfinitycaptures?igsh=NmpkbWd1czlkeWtw',
