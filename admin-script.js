@@ -4,9 +4,7 @@ import {
   logoutAdmin, 
   onAuthChange, 
   FirebaseAPI, 
-  CLOUDINARY_CONFIG,
-  uploadImageViaFunction,
-  uploadProfilePhotoViaFunction
+  CLOUDINARY_CONFIG
 } from './firebase-config.js';
 import { FallbackStorage } from './fallback-storage.js';
 
@@ -935,15 +933,11 @@ class AdminDashboard {
       for (let i = 0; i < this.selectedFiles.length; i++) {
         const file = this.selectedFiles[i];
 
-        // Read file as data URL for backend upload (avoids exposing secrets in client)
-        const fileDataUrl = await this.readFileAsDataUrl(file);
-
         const progress = ((i + 1) / this.selectedFiles.length) * 100;
         progressFill.style.width = `${progress}%`;
 
-        // Upload via Firebase Function -> Cloudinary
-        const folder = `twinfinity/${categoryId}`;
-        const imageUrl = await uploadImageViaFunction(fileDataUrl, folder);
+        // Upload to Cloudinary using unsigned preset
+        const imageUrl = await this.uploadToCloudinary(file, categoryId);
         
         // Save to Firestore
         await FirebaseAPI.addGalleryImage({
@@ -968,14 +962,24 @@ class AdminDashboard {
     }
   }
 
-  // Utility to convert a File to data URL
-  readFileAsDataUrl(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+  // Unsigned upload to Cloudinary with an upload preset
+  async uploadToCloudinary(file, categoryId) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+    formData.append('folder', `twinfinity/${categoryId}`);
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData
     });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image to Cloudinary');
+    }
+
+    const data = await response.json();
+    return data.secure_url;
   }
 
   // Edit methods
@@ -1209,8 +1213,7 @@ Submitted: ${new Date(order.createdAt.seconds * 1000).toLocaleDateString()}
       const inputEl = document.getElementById('profile-image-input');
       const photoFile = inputEl?.files?.[0];
       if (photoFile) {
-        const dataUrl = await this.readFileAsDataUrl(photoFile);
-        const photoUrl = await uploadProfilePhotoViaFunction(dataUrl);
+        const photoUrl = await this.uploadProfilePhoto(photoFile);
         data.photo = photoUrl;
       }
 
@@ -1223,7 +1226,24 @@ Submitted: ${new Date(order.createdAt.seconds * 1000).toLocaleDateString()}
     }
   }
 
-  // Legacy method removed: uploads are performed via Firebase Functions to keep secrets server-side
+  async uploadProfilePhoto(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+    formData.append('folder', 'twinfinity/admin');
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload profile photo to Cloudinary');
+    }
+
+    const data = await response.json();
+    return data.secure_url;
+  }
 
   async removeProfilePhoto() {
     if (confirm('Are you sure you want to remove your profile photo?')) {

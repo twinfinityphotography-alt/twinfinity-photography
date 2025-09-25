@@ -2,7 +2,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 import { FallbackStorage } from './fallback-storage.js';
 
 const firebaseConfig = {
@@ -19,7 +18,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const functions = getFunctions(app);
 
 // Initialize fallback storage
 const fallbackStorage = new FallbackStorage();
@@ -30,7 +28,8 @@ let firebaseReady = false;
 
 // Cloudinary configuration used client-side only for building delivery URLs (no secrets here)
 const CLOUDINARY_CONFIG = {
-  cloudName: 'dmodvacdz'
+  cloudName: 'dmodvacdz',
+  uploadPreset: 'twinfinity_photos'
 };
 
 // Initialize default collections when admin first logs in
@@ -511,19 +510,6 @@ const FirebaseAPI = {
   }
 };
 
-// Cloud Functions helpers for uploads (keeps secrets server-side)
-async function uploadImageViaFunction(fileDataUrl, folder, transformation = null) {
-  const callable = httpsCallable(functions, 'uploadImage');
-  const res = await callable({ fileDataUrl, folder, transformation });
-  return res.data?.secureUrl;
-}
-
-async function uploadProfilePhotoViaFunction(fileDataUrl) {
-  const callable = httpsCallable(functions, 'uploadProfilePhoto');
-  const res = await callable({ fileDataUrl });
-  return res.data?.secureUrl;
-}
-
 // Export functions and objects
 export {
   auth,
@@ -533,7 +519,5 @@ export {
   onAuthChange,
   FirebaseAPI,
   CLOUDINARY_CONFIG,
-  initializeDefaultCollections,
-  uploadImageViaFunction,
-  uploadProfilePhotoViaFunction
+  initializeDefaultCollections
 };
