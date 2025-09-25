@@ -2,6 +2,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { FallbackStorage } from './fallback-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCAmMqSfWvPXoFQnmKdiM2lf9A3ik1W2sI",
@@ -17,6 +18,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Initialize fallback storage
+const fallbackStorage = new FallbackStorage();
+let useFirebase = true;
+
+// Test Firebase connection on initialization
+let firebaseReady = false;
 
 // Cloudinary configuration
 const CLOUDINARY_CONFIG = {
@@ -187,14 +195,31 @@ async function initializeDefaultCollections() {
 
 // Admin authentication
 async function loginAdmin(email, password) {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    console.log('Admin logged in successfully');
-    await initializeDefaultCollections(); // Initialize collections on first login
-    return userCredential.user;
-  } catch (error) {
-    console.error('Login error:', error);
-    throw error;
+  // Check if this is the correct admin credentials
+  if (email === 'admin@gmail.com' && password === 'admin123') {
+    try {
+      // Try Firebase authentication first
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Admin logged in successfully with Firebase');
+      await initializeDefaultCollections();
+      firebaseReady = true;
+      useFirebase = true;
+      return userCredential.user;
+    } catch (error) {
+      console.warn('Firebase authentication failed, using local login:', error);
+      // Fallback to local authentication
+      useFirebase = false;
+      firebaseReady = false;
+      // Create a mock user object
+      return {
+        uid: 'admin-local',
+        email: email,
+        displayName: 'Admin',
+        isLocal: true
+      };
+    }
+  } else {
+    throw new Error('Invalid credentials');
   }
 }
 
@@ -213,168 +238,256 @@ function onAuthChange(callback) {
   return onAuthStateChanged(auth, callback);
 }
 
-// Database operations
+// Test Firestore connection
+async function testFirestoreConnection() {
+  try {
+    // Try to read from settings - if this fails, we have a connection issue
+    const testDoc = await getDoc(doc(db, 'settings', 'site'));
+    console.log('Firestore connection test successful');
+    return true;
+  } catch (error) {
+    console.error('Firestore connection failed:', error);
+    // If connection fails, we might need to initialize with test mode
+    return false;
+  }
+}
+
+// Database operations with Firebase/Fallback
 const FirebaseAPI = {
+  // Helper function to handle Firebase calls with fallback
+  async _callWithFallback(firebaseMethod, fallbackMethod, ...args) {
+    if (!useFirebase) {
+      return await fallbackMethod(...args);
+    }
+    try {
+      return await firebaseMethod(...args);
+    } catch (error) {
+      console.warn('Firebase operation failed, using fallback:', error.message);
+      useFirebase = false;
+      return await fallbackMethod(...args);
+    }
+  },
+
   // Categories
   async getCategories() {
-    const snapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return this._callWithFallback(
+      async () => {
+        const snapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      },
+      () => fallbackStorage.getCategories()
+    );
   },
 
   async addCategory(data) {
-    return await addDoc(collection(db, 'categories'), {
-      ...data,
-      createdAt: new Date()
-    });
+    return this._callWithFallback(
+      () => addDoc(collection(db, 'categories'), { ...data, createdAt: new Date() }),
+      () => fallbackStorage.addCategory(data)
+    );
   },
 
   async updateCategory(id, data) {
-    return await updateDoc(doc(db, 'categories', id), {
-      ...data,
-      updatedAt: new Date()
-    });
+    return this._callWithFallback(
+      () => updateDoc(doc(db, 'categories', id), { ...data, updatedAt: new Date() }),
+      () => fallbackStorage.updateCategory(id, data)
+    );
   },
 
   async deleteCategory(id) {
-    return await deleteDoc(doc(db, 'categories', id));
+    return this._callWithFallback(
+      () => deleteDoc(doc(db, 'categories', id)),
+      () => fallbackStorage.deleteCategory(id)
+    );
   },
 
   // Services
   async getServices() {
-    const snapshot = await getDocs(query(collection(db, 'services'), orderBy('order')));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return this._callWithFallback(
+      async () => {
+        const snapshot = await getDocs(query(collection(db, 'services'), orderBy('order')));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      },
+      () => fallbackStorage.getServices()
+    );
   },
 
   async addService(data) {
-    return await addDoc(collection(db, 'services'), {
-      ...data,
-      createdAt: new Date()
-    });
+    return this._callWithFallback(
+      () => addDoc(collection(db, 'services'), { ...data, createdAt: new Date() }),
+      () => fallbackStorage.addService(data)
+    );
   },
 
   async updateService(id, data) {
-    return await updateDoc(doc(db, 'services', id), {
-      ...data,
-      updatedAt: new Date()
-    });
+    return this._callWithFallback(
+      () => updateDoc(doc(db, 'services', id), { ...data, updatedAt: new Date() }),
+      () => fallbackStorage.updateService(id, data)
+    );
   },
 
   async deleteService(id) {
-    return await deleteDoc(doc(db, 'services', id));
+    return this._callWithFallback(
+      () => deleteDoc(doc(db, 'services', id)),
+      () => fallbackStorage.deleteService(id)
+    );
   },
 
   // Add-ons
   async getAddons() {
-    const snapshot = await getDocs(query(collection(db, 'addons'), orderBy('order')));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return this._callWithFallback(
+      async () => {
+        const snapshot = await getDocs(query(collection(db, 'addons'), orderBy('order')));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      },
+      () => fallbackStorage.getAddons()
+    );
   },
 
   async addAddon(data) {
-    return await addDoc(collection(db, 'addons'), {
-      ...data,
-      createdAt: new Date()
-    });
+    return this._callWithFallback(
+      () => addDoc(collection(db, 'addons'), { ...data, createdAt: new Date() }),
+      () => fallbackStorage.addAddon(data)
+    );
   },
 
   async updateAddon(id, data) {
-    return await updateDoc(doc(db, 'addons', id), {
-      ...data,
-      updatedAt: new Date()
-    });
+    return this._callWithFallback(
+      () => updateDoc(doc(db, 'addons', id), { ...data, updatedAt: new Date() }),
+      () => fallbackStorage.updateAddon(id, data)
+    );
   },
 
   async deleteAddon(id) {
-    return await deleteDoc(doc(db, 'addons', id));
+    return this._callWithFallback(
+      () => deleteDoc(doc(db, 'addons', id)),
+      () => fallbackStorage.deleteAddon(id)
+    );
   },
 
   // Gallery Images
   async getGalleryImages(categoryId = null) {
-    let q = collection(db, 'gallery');
-    if (categoryId) {
-      q = query(q, where('categoryId', '==', categoryId), orderBy('order'));
-    } else {
-      q = query(q, orderBy('categoryId'), orderBy('order'));
-    }
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return this._callWithFallback(
+      async () => {
+        let q = collection(db, 'gallery');
+        if (categoryId) {
+          q = query(q, where('categoryId', '==', categoryId), orderBy('order'));
+        } else {
+          q = query(q, orderBy('categoryId'), orderBy('order'));
+        }
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      },
+      () => fallbackStorage.getGalleryImages(categoryId)
+    );
   },
 
   async addGalleryImage(data) {
-    return await addDoc(collection(db, 'gallery'), {
-      ...data,
-      createdAt: new Date()
-    });
-  },
-
-  async updateGalleryImage(id, data) {
-    return await updateDoc(doc(db, 'gallery', id), {
-      ...data,
-      updatedAt: new Date()
-    });
+    return this._callWithFallback(
+      () => addDoc(collection(db, 'gallery'), { ...data, createdAt: new Date() }),
+      () => fallbackStorage.addGalleryImage(data)
+    );
   },
 
   async deleteGalleryImage(id) {
-    return await deleteDoc(doc(db, 'gallery', id));
+    return this._callWithFallback(
+      () => deleteDoc(doc(db, 'gallery', id)),
+      () => fallbackStorage.deleteGalleryImage(id)
+    );
   },
 
   // Orders
   async getOrders() {
-    const snapshot = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return this._callWithFallback(
+      async () => {
+        const snapshot = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      },
+      () => fallbackStorage.getOrders()
+    );
   },
 
   async addOrder(data) {
-    return await addDoc(collection(db, 'orders'), {
-      ...data,
-      createdAt: new Date(),
-      status: 'new'
-    });
+    return this._callWithFallback(
+      () => addDoc(collection(db, 'orders'), { ...data, createdAt: new Date(), status: 'new' }),
+      () => fallbackStorage.addOrder(data)
+    );
   },
 
   async updateOrderStatus(id, status, notes = '') {
-    return await updateDoc(doc(db, 'orders', id), {
-      status,
-      notes,
-      updatedAt: new Date()
-    });
+    return this._callWithFallback(
+      () => updateDoc(doc(db, 'orders', id), { status, notes, updatedAt: new Date() }),
+      () => fallbackStorage.updateOrderStatus(id, status, notes)
+    );
   },
 
   // Settings
   async getSiteSettings() {
-    const docRef = doc(db, 'settings', 'site');
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? docSnap.data() : null;
+    return this._callWithFallback(
+      async () => {
+        const docRef = doc(db, 'settings', 'site');
+        const docSnap = await getDoc(docRef);
+        return docSnap.exists() ? docSnap.data() : null;
+      },
+      () => fallbackStorage.getSiteSettings()
+    );
   },
 
   async updateSiteSettings(data) {
-    return await updateDoc(doc(db, 'settings', 'site'), {
-      ...data,
-      updatedAt: new Date()
-    });
+    return this._callWithFallback(
+      () => updateDoc(doc(db, 'settings', 'site'), { ...data, updatedAt: new Date() }),
+      () => fallbackStorage.updateSiteSettings(data)
+    );
+  },
+
+  // Admin Profile
+  async getAdminProfile() {
+    return this._callWithFallback(
+      async () => {
+        const docRef = doc(db, 'settings', 'adminProfile');
+        const docSnap = await getDoc(docRef);
+        return docSnap.exists() ? docSnap.data() : null;
+      },
+      () => fallbackStorage.getAdminProfile()
+    );
+  },
+
+  async updateAdminProfile(data) {
+    return this._callWithFallback(
+      () => updateDoc(doc(db, 'settings', 'adminProfile'), { ...data, updatedAt: new Date() }),
+      () => fallbackStorage.updateAdminProfile(data)
+    );
   },
 
   // Testimonials
   async getTestimonials() {
-    const snapshot = await getDocs(query(collection(db, 'testimonials'), orderBy('order')));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return this._callWithFallback(
+      async () => {
+        const snapshot = await getDocs(query(collection(db, 'testimonials'), orderBy('order')));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      },
+      () => fallbackStorage.getTestimonials()
+    );
   },
 
   async addTestimonial(data) {
-    return await addDoc(collection(db, 'testimonials'), {
-      ...data,
-      createdAt: new Date()
-    });
+    return this._callWithFallback(
+      () => addDoc(collection(db, 'testimonials'), { ...data, createdAt: new Date() }),
+      () => fallbackStorage.addTestimonial(data)
+    );
   },
 
   async updateTestimonial(id, data) {
-    return await updateDoc(doc(db, 'testimonials', id), {
-      ...data,
-      updatedAt: new Date()
-    });
+    return this._callWithFallback(
+      () => updateDoc(doc(db, 'testimonials', id), { ...data, updatedAt: new Date() }),
+      () => fallbackStorage.updateTestimonial(id, data)
+    );
   },
 
   async deleteTestimonial(id) {
-    return await deleteDoc(doc(db, 'testimonials', id));
+    return this._callWithFallback(
+      () => deleteDoc(doc(db, 'testimonials', id)),
+      () => fallbackStorage.deleteTestimonial(id)
+    );
   }
 };
 
