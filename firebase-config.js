@@ -210,7 +210,7 @@ async function loginAdmin(email, password) {
   // Check if this is the correct admin credentials
   if (email === 'admin@gmail.com' && password === 'admin123') {
     try {
-      // Try Firebase authentication first
+      // Require real Firebase authentication (no silent fallback)
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Admin logged in successfully with Firebase');
       await initializeDefaultCollections();
@@ -218,17 +218,8 @@ async function loginAdmin(email, password) {
       useFirebase = true;
       return userCredential.user;
     } catch (error) {
-      console.warn('Firebase authentication failed, using local login:', error);
-      // Fallback to local authentication
-      useFirebase = false;
-      firebaseReady = false;
-      // Create a mock user object
-      return {
-        uid: 'admin-local',
-        email: email,
-        displayName: 'Admin',
-        isLocal: true
-      };
+      console.error('Firebase authentication failed:', error);
+      throw new Error('Login failed. Please ensure this domain is authorized in Firebase Auth and try again.');
     }
   } else {
     throw new Error('Invalid credentials');
@@ -268,16 +259,8 @@ async function testFirestoreConnection() {
 const FirebaseAPI = {
   // Helper function to handle Firebase calls with fallback
   async _callWithFallback(firebaseMethod, fallbackMethod, ...args) {
-    if (!useFirebase) {
-      return await fallbackMethod(...args);
-    }
-    try {
-      return await firebaseMethod(...args);
-    } catch (error) {
-      console.warn('Firebase operation failed, using fallback:', error.message);
-      useFirebase = false;
-      return await fallbackMethod(...args);
-    }
+    // Enforce Firebase in production: do not fallback silently
+    return await firebaseMethod(...args);
   },
 
   // Categories
