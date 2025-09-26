@@ -362,15 +362,24 @@ const FirebaseAPI = {
   // Gallery Images
   async getGalleryImages(categoryId = null) {
     return this._callWithFallback(
-      async () => {
+      async () => {\r
+        // Avoid composite indexes: fetch minimal query and sort client-side
         let q = collection(db, 'gallery');
         if (categoryId) {
-          q = query(q, where('categoryId', '==', categoryId), orderBy('order'));
-        } else {
-          q = query(q, orderBy('categoryId'), orderBy('order'));
+          q = query(q, where('categoryId', '==', categoryId));
         }
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort by categoryId then order if available
+        return items.sort((a, b) => {
+          if (!categoryId) {
+            const ca = (a.categoryId || '').localeCompare(b.categoryId || '');
+            if (ca !== 0) return ca;
+          }
+          const oa = Number(a.order || 0);
+          const ob = Number(b.order || 0);
+          return oa - ob;
+        });
       },
       () => fallbackStorage.getGalleryImages(categoryId)
     );

@@ -124,12 +124,13 @@ async function loadGallery(category, count, targetSelector) {
   try {
     // Fetch images from Firebase
     const imagesSnapshot = await getDocs(query(
-      collection(db, 'gallery'),
-      where('categoryId', '==', category),
-      orderBy('order')
+      collection(db, 'gallery'), 
+      where('categoryId', '==', category)
     ));
     
-    const images = imagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const images = imagesSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
     
     if (images.length === 0) {
       console.log(`No images found for category: ${category}`);
