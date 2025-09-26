@@ -362,14 +362,14 @@ const FirebaseAPI = {
   // Gallery Images
   async getGalleryImages(categoryId = null) {
     return this._callWithFallback(
-      async () => {\r
-        // Avoid composite indexes: fetch minimal query and sort client-side
-        let q = collection(db, 'gallery');
-        if (categoryId) {
-          q = query(q, where('categoryId', '==', categoryId));
-        }
+      async () => {
+        // Enforce rule: only published images are readable; filter category client-side to avoid composite index
+        let q = query(collection(db, 'gallery'), where('published', '==', true));
         const snapshot = await getDocs(q);
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (categoryId) {
+          items = items.filter(it => it.categoryId === categoryId);
+        }
         // Sort by categoryId then order if available
         return items.sort((a, b) => {
           if (!categoryId) {

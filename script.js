@@ -64,34 +64,38 @@ async function loadConfigFromFirebase() {
     const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
     const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
-    // Build galleries object with image counts
+    // Build galleries object with image counts (published only)
     for (const category of categories) {
       if (category.active) {
         const imagesSnapshot = await getDocs(query(
-          collection(db, 'gallery'), 
-          where('categoryId', '==', category.id)
+          collection(db, 'gallery'),
+          where('published', '==', true)
         ));
-        CONFIG.galleries[category.id] = imagesSnapshot.docs.length;
+        const count = imagesSnapshot.docs
+          .map(d => d.data())
+          .filter(img => img.categoryId === category.id)
+          .length;
+        CONFIG.galleries[category.id] = count;
       }
     }
     
-    // Load services
-    const servicesSnapshot = await getDocs(query(collection(db, 'services'), orderBy('order')));
+    // Load services (only active; sort client-side)
+    const servicesSnapshot = await getDocs(query(collection(db, 'services'), where('active', '==', true)));
     CONFIG.services = servicesSnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(service => service.active);
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
     
-    // Load add-ons
-    const addonsSnapshot = await getDocs(query(collection(db, 'addons'), orderBy('order')));
+    // Load add-ons (only active; sort client-side)
+    const addonsSnapshot = await getDocs(query(collection(db, 'addons'), where('active', '==', true)));
     CONFIG.addons = addonsSnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(addon => addon.active);
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
     
-    // Load testimonials
-    const testimonialsSnapshot = await getDocs(query(collection(db, 'testimonials'), orderBy('order')));
+    // Load testimonials (only published; sort client-side)
+    const testimonialsSnapshot = await getDocs(query(collection(db, 'testimonials'), where('published', '==', true)));
     CONFIG.testimonials = testimonialsSnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(testimonial => testimonial.active);
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
     
     // Load founders info
     const foundersDoc = await getDoc(doc(db, 'settings', 'founders'));
@@ -122,14 +126,15 @@ async function loadGallery(category, count, targetSelector) {
   if (!container) return;
 
   try {
-    // Fetch images from Firebase
+    // Fetch images from Firebase (published only; filter category client-side)
     const imagesSnapshot = await getDocs(query(
-      collection(db, 'gallery'), 
-      where('categoryId', '==', category)
+      collection(db, 'gallery'),
+      where('published', '==', true)
     ));
     
     const images = imagesSnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(img => img.categoryId === category)
       .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
     
     if (images.length === 0) {
@@ -316,7 +321,6 @@ async function sendToWhatsApp() {
     return;
   }
 
-// CLEANED MERGE CONFLICT START
   const submitButton = document.querySelector('#booking-form button[type="submit"]');
   const originalText = submitButton.textContent;
   
@@ -359,16 +363,6 @@ async function sendToWhatsApp() {
       `📸 Event Type: ${eventType}\n` +
       `📝 Notes: ${message || 'No additional notes'}\n\n` +
       `Looking forward to your response!`;
-=======
-  const raw = `Hello Twinfinity Captures ✨,\n` +
-    `I’d like to book a session with the following details:\n\n` +
-    `👤 Name: ${name}\n` +
-    `📧 Email: ${email}\n` +
-    `📅 Event Date: ${date}\n` +
-    `📸 Event Type: ${eventType}\n` +
-    `📝 Notes: ${message}\n\n` +
-    `Looking forward to your response!`;
-// CLEANED MERGE CONFLICT END
 
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(raw)}`;
     window.open(url, '_blank');
