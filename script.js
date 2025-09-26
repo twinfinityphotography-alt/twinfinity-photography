@@ -39,9 +39,9 @@ let CONFIG = {
 };
 
 // Load configuration from Firebase (parallel + prefetch gallery once)
-async function loadConfigFromFirebase() {
+async function loadConfigFromFirebase(forceReload = false) {
   try {
-    console.log('Loading configuration from Firebase...');
+    console.log('Loading configuration from Firebase...', forceReload ? '(Force reload)' : '');
 
     const [
       settingsDocSnap,
@@ -57,7 +57,7 @@ async function loadConfigFromFirebase() {
       getDocs(query(collection(db, 'categories'), orderBy('order'))),
       getDocs(query(collection(db, 'services'), where('active', '==', true))),
       getDocs(query(collection(db, 'addons'), where('active', '==', true))),
-      getDocs(query(collection(db, 'testimonials'), where('published', '==', true))),
+      getDocs(query(collection(db, 'testimonials'), where('active', '==', true))),
       getDoc(doc(db, 'settings', 'founders')),
       getDoc(doc(db, 'settings', 'adminProfile')),
       getDocs(query(collection(db, 'gallery'), where('published', '==', true)))
@@ -664,9 +664,20 @@ async function loadDynamicContent() {
     }
     
     // Update about section
-    const aboutText = document.querySelector('#about p');
-    if (aboutText && CONFIG.aboutText) {
-      aboutText.textContent = CONFIG.aboutText;
+    const aboutContainer = document.getElementById('about-content');
+    if (aboutContainer && CONFIG.aboutText) {
+      aboutContainer.innerHTML = `
+        <p>${CONFIG.aboutText}</p>
+        <p class="muted">We believe in honest emotions, elegant composition, and the kind of refined editing that looks beautiful today and timeless tomorrow. Every session is planned with care so you can simply be present — we'll capture the rest.</p>
+        <ul class="muted" style="margin:8px 0 0 18px;">
+          <li>Editorial-quality retouching and color grading</li>
+          <li>Professional lighting and equipment for any venue</li>
+          <li>Clear communication, punctuality, and dependable delivery</li>
+          <li>Secure online gallery — easy sharing with family and friends</li>
+        </ul>
+      `;
+    } else if (aboutContainer) {
+      aboutContainer.innerHTML = '<p class="text-muted">About content can be managed from the admin dashboard.</p>';
     }
 
     // Update founders section copy (title + first paragraph) if available
@@ -680,20 +691,30 @@ async function loadDynamicContent() {
     }
     
     // Show admin profile information if available
-    if (CONFIG.adminProfile && CONFIG.adminProfile.bio && foundersSecondEl) {
-      foundersSecondEl.textContent = CONFIG.adminProfile.bio;
+    if (CONFIG.adminProfile) {
+      if (CONFIG.adminProfile.bio && foundersSecondEl) {
+        foundersSecondEl.textContent = CONFIG.adminProfile.bio;
+      }
+      
+      // Update founders section with admin profile info
+      if (CONFIG.adminProfile.name && foundersTitleEl && !CONFIG.founders?.title) {
+        foundersTitleEl.textContent = `Meet ${CONFIG.adminProfile.name}`;
+      }
     }
 
-    // Render founders photo: if adminProfile.photo exists, show it; else fall back to assets
+    // Render founders photo: prioritize admin profile photo
     const photosHolder = document.getElementById('founders-photos');
     if (photosHolder) {
       photosHolder.innerHTML = '';
+      
       if (CONFIG?.adminProfile?.photo) {
         // Show admin profile photo
+        console.log('Loading admin profile photo:', CONFIG.adminProfile.photo);
         const card = document.createElement('div');
         card.className = 'founder-card parallax';
         card.setAttribute('data-depth', '12');
         card.style.setProperty('--dur', '12s');
+        
         const img = document.createElement('img');
         img.alt = CONFIG.adminProfile.name || 'Admin';
         img.src = CONFIG.adminProfile.photo;
@@ -701,18 +722,39 @@ async function loadDynamicContent() {
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.borderRadius = '12px';
+        
+        // Add error handling for image load
+        img.onerror = () => {
+          console.error('Failed to load admin profile photo:', CONFIG.adminProfile.photo);
+          // Fallback to default founders if admin photo fails
+          photosHolder.innerHTML = '';
+          if (CONFIG?.founders?.count) {
+            loadFounders(Number(CONFIG.founders.count));
+          }
+        };
+        
         const shine = document.createElement('span');
         shine.className = 'shine';
         card.appendChild(img);
         card.appendChild(shine);
         photosHolder.appendChild(card);
-        console.log('Admin profile photo loaded:', CONFIG.adminProfile.photo);
-      } else if (CONFIG?.founders?.count) {
-        // Fallback to default founder images
+        console.log('Admin profile photo added to DOM');
+      } else if (CONFIG?.founders?.count && CONFIG.founders.count > 0) {
+        // Fallback to default founder images only if no admin photo
+        console.log('Loading default founder images, count:', CONFIG.founders.count);
         loadFounders(Number(CONFIG.founders.count));
       } else {
-        // Show placeholder if no photo and no founders
-        console.log('No admin photo or founders configured');
+        // Show message for admin to upload photo
+        const placeholder = document.createElement('div');
+        placeholder.className = 'founder-placeholder';
+        placeholder.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #666;">
+            <i class="fas fa-user" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+            <p>Admin can upload profile photo from the dashboard</p>
+          </div>
+        `;
+        photosHolder.appendChild(placeholder);
+        console.log('No admin photo or founders configured - showing placeholder');
       }
     }
     
@@ -731,8 +773,13 @@ async function loadDynamicContent() {
 
 // Load testimonials
 function loadTestimonials() {
-  const testimonialsContainer = document.querySelector('.testimonials');
-  if (!testimonialsContainer || !CONFIG.testimonials.length) return;
+  const testimonialsContainer = document.getElementById('testimonials-container');
+  if (!testimonialsContainer) return;
+  
+  if (!CONFIG.testimonials || CONFIG.testimonials.length === 0) {
+    testimonialsContainer.innerHTML = '<p class="text-muted">No testimonials available. Admin can add testimonials from the dashboard.</p>';
+    return;
+  }
   
   testimonialsContainer.innerHTML = CONFIG.testimonials.map(testimonial => `
     <blockquote class="testimonial reveal">
@@ -768,46 +815,59 @@ async function loadEventTypeOptions() {
 // Update setupFilters to handle dynamic categories
 async function setupDynamicFilters() {
   try {
-    const buttonsContainer = document.querySelector('.filters');
-    const categoriesContainer = document.querySelector('#portfolio .container');
+    const filtersContainer = document.getElementById('portfolio-filters');
+    const categoriesContainer = document.getElementById('portfolio-categories');
     
-    if (!buttonsContainer || !categoriesContainer) return;
+    if (!filtersContainer || !categoriesContainer) {
+      console.error('Portfolio containers not found');
+      return;
+    }
     
     // Get categories from Firebase
     const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
     const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
-    // Clear existing filter buttons (except 'All')
-    const allButton = buttonsContainer.querySelector('[data-filter="all"]');
-    buttonsContainer.innerHTML = '';
-    buttonsContainer.appendChild(allButton);
+    console.log('Setting up dynamic categories:', categories);
     
-    // Add dynamic category filters
+    // Keep the 'All' button and add category filters
+    const allButton = filtersContainer.querySelector('[data-filter="all"]');
+    const existingFilters = filtersContainer.querySelectorAll('.filter:not([data-filter="all"])');
+    existingFilters.forEach(filter => filter.remove());
+    
+    // Clear existing categories
+    categoriesContainer.innerHTML = '';
+    
+    // Add dynamic category filters and sections
     categories.forEach(category => {
       if (category.active) {
+        // Add filter button
         const button = document.createElement('button');
         button.className = 'filter';
         button.setAttribute('data-filter', category.id);
         button.textContent = category.name;
-        buttonsContainer.appendChild(button);
+        filtersContainer.appendChild(button);
         
-        // Create category section if it doesn't exist
-        let categorySection = document.querySelector(`[data-category="${category.id}"]`);
-        if (!categorySection) {
-          categorySection = document.createElement('div');
-          categorySection.className = 'category reveal';
-          categorySection.setAttribute('data-category', category.id);
-          categorySection.innerHTML = `
-            <h3>${category.name}</h3>
-            <div class="gallery" id="gallery-${category.id}" data-category="${category.id}"></div>
-          `;
-          categoriesContainer.appendChild(categorySection);
-        }
+        // Create category section
+        const categorySection = document.createElement('div');
+        categorySection.className = 'category reveal';
+        categorySection.setAttribute('data-category', category.id);
+        categorySection.innerHTML = `
+          <h3>${category.name}</h3>
+          <div class="gallery" id="gallery-${category.id}" data-category="${category.id}"></div>
+        `;
+        categoriesContainer.appendChild(categorySection);
+        
+        console.log(`Added category: ${category.name} (${category.id})`);
       }
     });
     
     // Setup filter functionality
     setupFilters();
+    
+    // If no categories exist, show message
+    if (categories.filter(c => c.active).length === 0) {
+      categoriesContainer.innerHTML = '<p class="text-muted" style="text-align: center; padding: 40px;">No portfolio categories available. Admin can add categories from the dashboard.</p>';
+    }
     
   } catch (error) {
     console.error('Error setting up dynamic filters:', error);
@@ -815,6 +875,18 @@ async function setupDynamicFilters() {
 }
 
 // Init
+// Force reload configuration (for admin changes)
+window.refreshWebsiteContent = async () => {
+  try {
+    console.log('Refreshing website content...');
+    await loadConfigFromFirebase(true);
+    await loadDynamicContent();
+    console.log('Website content refreshed successfully');
+  } catch (error) {
+    console.error('Error refreshing website content:', error);
+  }
+};
+
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     // Load configuration from Firebase first

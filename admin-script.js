@@ -889,8 +889,7 @@ class AdminDashboard {
       text: formData.get('text'),
       author: formData.get('author'),
       order: parseInt(formData.get('order')),
-      active: formData.get('active') === 'on',
-      published: formData.get('active') === 'on'
+      active: formData.get('active') === 'on'
     };
 
     try {
@@ -1113,20 +1112,36 @@ class AdminDashboard {
 
   // Delete methods
   async deleteCategory(categoryId) {
+    if (!categoryId) {
+      this.showToast('Invalid category ID', 'error');
+      return;
+    }
+    
     if (confirm('Are you sure you want to delete this category? This will also delete all images in this category.')) {
       try {
+        console.log('Deleting category:', categoryId);
+        
+        // The Firebase function now handles deleting associated images
         await FirebaseAPI.deleteCategory(categoryId);
-        // Also delete associated gallery images
-        const images = await FirebaseAPI.getGalleryImages(categoryId);
-        for (const image of images) {
-          await FirebaseAPI.deleteGalleryImage(image.id);
+        
+        this.showToast('Category and all associated images deleted successfully!');
+        
+        // Refresh the categories list and gallery filter
+        await this.loadCategories();
+        
+        // Also refresh gallery if we're on that section
+        if (this.currentSection === 'gallery') {
+          await this.loadGallery();
         }
         
-        this.showToast('Category deleted successfully!');
-        await this.loadCategories();
+        // Refresh overview stats
+        if (this.currentSection === 'overview') {
+          await this.loadOverviewData();
+        }
+        
       } catch (error) {
         console.error('Error deleting category:', error);
-        this.showToast('Error deleting category', 'error');
+        this.showToast(`Error deleting category: ${error.message}`, 'error');
       }
     }
   }
@@ -1300,17 +1315,28 @@ Submitted: ${new Date(order.createdAt.seconds * 1000).toLocaleDateString()}
       // Handle profile photo upload if present (from #profile-image-input)
       const inputEl = document.getElementById('profile-image-input');
       const photoFile = inputEl?.files?.[0];
+      
       if (photoFile) {
+        console.log('Uploading profile photo:', photoFile.name);
+        this.showToast('Uploading profile photo...', 'warning');
         const photoUrl = await this.uploadProfilePhoto(photoFile);
         data.photo = photoUrl;
+        console.log('Profile photo uploaded:', photoUrl);
       }
 
+      console.log('Saving profile data:', data);
       await FirebaseAPI.updateAdminProfile(data);
       this.showToast('Profile updated successfully!');
+      
+      // Clear the file input after successful upload
+      if (inputEl && photoFile) {
+        inputEl.value = '';
+      }
+      
       await this.loadProfile();
     } catch (error) {
       console.error('Error saving profile:', error);
-      this.showToast('Error saving profile', 'error');
+      this.showToast(`Error saving profile: ${error.message}`, 'error');
     }
   }
 
@@ -1354,27 +1380,38 @@ Submitted: ${new Date(order.createdAt.seconds * 1000).toLocaleDateString()}
     const placeholder = document.getElementById('profile-placeholder');
 
     if (uploadBtn && inputEl) {
-      uploadBtn.addEventListener('click', () => inputEl.click());
+      uploadBtn.addEventListener('click', () => {
+        console.log('Upload button clicked');
+        inputEl.click();
+      });
     }
+    
     if (inputEl && imgEl && placeholder) {
       inputEl.addEventListener('change', () => {
         const file = inputEl.files?.[0];
         if (!file) return;
+        
+        console.log('File selected:', file.name);
         const reader = new FileReader();
         reader.onload = (e) => {
           imgEl.src = e.target.result;
           imgEl.style.display = 'block';
           placeholder.style.display = 'none';
+          if (removeBtn) removeBtn.style.display = 'inline-flex';
         };
         reader.readAsDataURL(file);
       });
     }
+    
     if (removeBtn) {
       removeBtn.addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to remove your profile photo?')) return;
+        
         try {
           await FirebaseAPI.removeAdminProfilePhoto();
           if (imgEl) { imgEl.src = ''; imgEl.style.display = 'none'; }
           if (placeholder) placeholder.style.display = 'flex';
+          if (inputEl) inputEl.value = '';
           removeBtn.style.display = 'none';
           this.showToast('Profile photo removed successfully!');
         } catch (err) {

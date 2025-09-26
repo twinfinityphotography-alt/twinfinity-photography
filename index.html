@@ -79,26 +79,13 @@
       <div class="container">
         <h2 class="section-title reveal">Portfolio</h2>
 
-        <div class="filters reveal" role="tablist" aria-label="Filter portfolio">
+        <div class="filters reveal" role="tablist" aria-label="Filter portfolio" id="portfolio-filters">
           <button class="filter active" data-filter="all" aria-selected="true">All</button>
-          <button class="filter" data-filter="wedding">Weddings</button>
-          <button class="filter" data-filter="event">Events</button>
-          <button class="filter" data-filter="portrait">Portraits</button>
+          <!-- Dynamic category filters will be loaded here -->
         </div>
 
-        <div class="category reveal" data-category="wedding">
-          <h3>Weddings</h3>
-          <div class="gallery" id="gallery-wedding" data-category="wedding"></div>
-        </div>
-
-        <div class="category reveal" data-category="event">
-          <h3>Events</h3>
-          <div class="gallery" id="gallery-event" data-category="event"></div>
-        </div>
-
-        <div class="category reveal" data-category="portrait">
-          <h3>Portraits</h3>
-          <div class="gallery" id="gallery-portrait" data-category="portrait"></div>
+        <div id="portfolio-categories">
+          <!-- Dynamic portfolio categories will be loaded here -->
         </div>
       </div>
     </section>
@@ -120,26 +107,17 @@
     <section id="about" class="section">
       <div class="container reveal">
         <h2 class="section-title">About</h2>
-        <p>
-          We are Twinfinity Captures — storytellers dedicated to preserving your most meaningful moments through timeless imagery. From intimate weddings to vibrant events and expressive portraits, we create experiences as memorable as the photos themselves.
-        </p>
-        <p class="muted">We believe in honest emotions, elegant composition, and the kind of refined editing that looks beautiful today and timeless tomorrow. Every session is planned with care so you can simply be present — we’ll capture the rest.</p>
-        <ul class="muted" style="margin:8px 0 0 18px;">
-          <li>Editorial-quality retouching and color grading</li>
-          <li>Professional lighting and equipment for any venue</li>
-          <li>Clear communication, punctuality, and dependable delivery</li>
-          <li>Secure online gallery — easy sharing with family and friends</li>
-        </ul>
+        <div id="about-content">
+          <!-- About content will be loaded dynamically from admin dashboard -->
+        </div>
       </div>
     </section>
 
     <section id="testimonials" class="section alt">
       <div class="container">
         <h2 class="section-title reveal">What Clients Say</h2>
-        <div class="testimonials">
-          <blockquote class="testimonial reveal">“They captured our wedding beautifully — every tiny moment! Highly recommended.” <span>— Ayesha & Hamza</span></blockquote>
-          <blockquote class="testimonial reveal">“Professional team, punctual, and incredible results for our corporate gala.” <span>— NEXA Corp</span></blockquote>
-          <blockquote class="testimonial reveal">“Our pre-wedding shoot felt effortless and the photos look like magazine covers.” <span>— Sara & Daniyal</span></blockquote>
+        <div class="testimonials" id="testimonials-container">
+          <!-- Testimonials will be loaded dynamically from admin dashboard -->
         </div>
       </div>
     </section>
@@ -268,6 +246,6 @@
     <img id="lightbox-image" alt="Viewed image" />
   </div>
 
-  <script type="module" src="./script.js?v=20250926"></script>
+  <script type="module" src="./script.js?v=20250926-fixed"></script>
 </body>
 </html>

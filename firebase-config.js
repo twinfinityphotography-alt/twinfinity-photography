@@ -151,7 +151,6 @@ async function initializeDefaultCollections() {
           text: 'They captured our wedding beautifully — every tiny moment! Highly recommended.',
           author: 'Ayesha & Hamza',
           active: true,
-          published: true,
           order: 1
         },
         {
@@ -159,7 +158,6 @@ async function initializeDefaultCollections() {
           text: 'Professional team, punctual, and incredible results for our corporate gala.',
           author: 'NEXA Corp',
           active: true,
-          published: true,
           order: 2
         },
         {
@@ -167,7 +165,6 @@ async function initializeDefaultCollections() {
           text: 'Our pre-wedding shoot felt effortless and the photos look like magazine covers.',
           author: 'Sara & Daniyal',
           active: true,
-          published: true,
           order: 3
         }
       ];
@@ -306,6 +303,21 @@ const FirebaseAPI = {
     return this._callWithFallback(
       async () => {
         console.log('Attempting to delete category:', id);
+        
+        // First, delete all gallery images in this category
+        const galleryQuery = query(collection(db, 'gallery'), where('categoryId', '==', id));
+        const gallerySnapshot = await getDocs(galleryQuery);
+        
+        const deletePromises = [];
+        gallerySnapshot.docs.forEach(docSnap => {
+          deletePromises.push(deleteDoc(doc(db, 'gallery', docSnap.id)));
+        });
+        
+        // Wait for all gallery images to be deleted
+        await Promise.all(deletePromises);
+        console.log(`Deleted ${deletePromises.length} gallery images from category ${id}`);
+        
+        // Then delete the category itself
         const result = await deleteDoc(doc(db, 'categories', id));
         console.log('Category deleted successfully:', id);
         return result;
