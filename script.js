@@ -3,12 +3,12 @@
 // Site-wide config: update these once and the site updates everywhere.
 const CONFIG = {
   theme: 'vibrant', // options: 'muted' | 'vibrant'
-  email: 'twinfinityphotography@gmail.com',
-  phoneNumber: '923175446886', // international format, no plus
+  email: 'twinfinitycaptures@gmail.com',
+  phoneNumber: '923185459061', // international format, no plus
   socials: {
     instagram: 'https://www.instagram.com/twinfinitycaptures?igsh=NmpkbWd1czlkeWtw',
     facebook: 'https://facebook.com/yourprofile',
-    whatsapp: 'https://wa.me/923175446886'
+    whatsapp: 'https://wa.me/923185459061'
   },
   galleries: {
     wedding: 14,
@@ -422,3 +422,4 @@ window.addEventListener('DOMContentLoaded', () => {
   const yEl = document.getElementById('year');
   if (yEl) yEl.textContent = new Date().getFullYear();
 });
+
