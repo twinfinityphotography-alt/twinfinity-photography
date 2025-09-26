@@ -38,15 +38,34 @@ let CONFIG = {
   testimonials: []
 };
 
-// Load configuration from Firebase
+// Load configuration from Firebase (parallel + prefetch gallery once)
 async function loadConfigFromFirebase() {
   try {
     console.log('Loading configuration from Firebase...');
-    
-    // Load site settings
-    const settingsDoc = await getDoc(doc(db, 'settings', 'site'));
-    if (settingsDoc.exists()) {
-      const settings = settingsDoc.data();
+
+    const [
+      settingsDocSnap,
+      categoriesSnap,
+      servicesSnap,
+      addonsSnap,
+      testimonialsSnap,
+      foundersDocSnap,
+      adminProfileDocSnap,
+      gallerySnap
+    ] = await Promise.all([
+      getDoc(doc(db, 'settings', 'site')),
+      getDocs(query(collection(db, 'categories'), orderBy('order'))),
+      getDocs(query(collection(db, 'services'), where('active', '==', true))),
+      getDocs(query(collection(db, 'addons'), where('active', '==', true))),
+      getDocs(query(collection(db, 'testimonials'), where('published', '==', true))),
+      getDoc(doc(db, 'settings', 'founders')),
+      getDoc(doc(db, 'settings', 'adminProfile')),
+      getDocs(query(collection(db, 'gallery'), where('published', '==', true)))
+    ]);
+
+    // Settings
+    if (settingsDocSnap.exists()) {
+      const settings = settingsDocSnap.data();
       CONFIG.email = settings.email || CONFIG.email;
       CONFIG.phoneNumber = settings.phone || CONFIG.phoneNumber;
       CONFIG.theme = settings.theme || CONFIG.theme;
@@ -54,61 +73,45 @@ async function loadConfigFromFirebase() {
       CONFIG.heroSubtitle = settings.heroSubtitle || CONFIG.heroSubtitle;
       CONFIG.aboutText = settings.aboutText || CONFIG.aboutText;
       CONFIG.siteName = settings.siteName || 'Twinfinity Photography';
-      
-      if (settings.socialLinks) {
-        CONFIG.socials = { ...CONFIG.socials, ...settings.socialLinks };
-      }
-    }
-    
-    // Load categories and build galleries object
-    const categoriesSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
-    const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    // Build galleries object with image counts (published only)
-    for (const category of categories) {
-      if (category.active) {
-        const imagesSnapshot = await getDocs(query(
-          collection(db, 'gallery'),
-          where('published', '==', true)
-        ));
-        const count = imagesSnapshot.docs
-          .map(d => d.data())
-          .filter(img => img.categoryId === category.id)
-          .length;
-        CONFIG.galleries[category.id] = count;
-      }
-    }
-    
-    // Load services (only active; sort client-side)
-    const servicesSnapshot = await getDocs(query(collection(db, 'services'), where('active', '==', true)));
-    CONFIG.services = servicesSnapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
-    
-    // Load add-ons (only active; sort client-side)
-    const addonsSnapshot = await getDocs(query(collection(db, 'addons'), where('active', '==', true)));
-    CONFIG.addons = addonsSnapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
-    
-    // Load testimonials (only published; sort client-side)
-    const testimonialsSnapshot = await getDocs(query(collection(db, 'testimonials'), where('published', '==', true)));
-    CONFIG.testimonials = testimonialsSnapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
-    
-    // Load founders info
-    const foundersDoc = await getDoc(doc(db, 'settings', 'founders'));
-    if (foundersDoc.exists()) {
-      CONFIG.founders = foundersDoc.data();
+      if (settings.socialLinks) CONFIG.socials = { ...CONFIG.socials, ...settings.socialLinks };
     }
 
-    // Load admin profile (used to display photo and bio in founders section)
-    const adminProfileDoc = await getDoc(doc(db, 'settings', 'adminProfile'));
-    if (adminProfileDoc.exists()) {
-      CONFIG.adminProfile = adminProfileDoc.data();
+    // Categories
+    const categories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Prefetch gallery once and build by-category cache and counts
+    const galleryItems = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const byCat = {};
+    for (const item of galleryItems) {
+      if (!item.categoryId) continue;
+      if (!byCat[item.categoryId]) byCat[item.categoryId] = [];
+      byCat[item.categoryId].push(item);
     }
-    
+    Object.keys(byCat).forEach(cat => byCat[cat].sort((a,b) => Number(a.order||0) - Number(b.order||0)));
+    CONFIG.galleryByCategory = byCat;
+    for (const cat of categories) {
+      if (cat.active) CONFIG.galleries[cat.id] = (byCat[cat.id] || []).length;
+    }
+
+    // Services
+    CONFIG.services = servicesSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => Number(a.order||0) - Number(b.order||0));
+
+    // Addons
+    CONFIG.addons = addonsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => Number(a.order||0) - Number(b.order||0));
+
+    // Testimonials
+    CONFIG.testimonials = testimonialsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => Number(a.order||0) - Number(b.order||0));
+
+    // Founders/Admin profile
+    if (foundersDocSnap.exists()) CONFIG.founders = foundersDocSnap.data();
+    if (adminProfileDocSnap.exists()) CONFIG.adminProfile = adminProfileDocSnap.data();
+
     console.log('Configuration loaded from Firebase:', CONFIG);
   } catch (error) {
     console.error('Error loading configuration from Firebase:', error);
@@ -126,16 +129,20 @@ async function loadGallery(category, count, targetSelector) {
   if (!container) return;
 
   try {
-    // Fetch images from Firebase (published only; filter category client-side)
-    const imagesSnapshot = await getDocs(query(
-      collection(db, 'gallery'),
-      where('published', '==', true)
-    ));
-    
-    const images = imagesSnapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(img => img.categoryId === category)
-      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    // Use preloaded cache if available (fast path)
+    let images = (CONFIG.galleryByCategory && CONFIG.galleryByCategory[category]) ? [...CONFIG.galleryByCategory[category]] : null;
+
+    if (!images) {
+      // Fallback: fetch published once
+      const imagesSnapshot = await getDocs(query(
+        collection(db, 'gallery'),
+        where('published', '==', true)
+      ));
+      images = imagesSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(img => img.categoryId === category)
+        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    }
     
     if (images.length === 0) {
       console.log(`No images found for category: ${category}`);
