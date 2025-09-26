@@ -200,6 +200,19 @@ class FallbackStorage {
     this.set('testimonials', filtered);
   }
 
+  async getFoundersSettings() {
+    return this.get('foundersSettings') || {
+      count: 2,
+      title: 'Meet the Sisters behind Twinfinity',
+      description: 'Two creative storytellers, dedicated to capturing emotion with elegance and detail.'
+    };
+  }
+
+  async updateFoundersSettings(data) {
+    const current = await this.getFoundersSettings();
+    this.set('foundersSettings', { ...current, ...data, updatedAt: new Date() });
+  }
+
   async getSiteSettings() {
     return this.get('settings') || this.defaultData.settings;
   }

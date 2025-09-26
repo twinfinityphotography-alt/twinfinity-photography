@@ -255,12 +255,17 @@ async function testFirestoreConnection() {
   }
 }
 
-// Database operations with Firebase/Fallback
+  // Database operations with Firebase/Fallback
 const FirebaseAPI = {
   // Helper function to handle Firebase calls with fallback
   async _callWithFallback(firebaseMethod, fallbackMethod, ...args) {
-    // Enforce Firebase in production: do not fallback silently
-    return await firebaseMethod(...args);
+    try {
+      // Enforce Firebase in production: do not fallback silently
+      return await firebaseMethod(...args);
+    } catch (error) {
+      console.error('Firebase operation failed:', error);
+      throw error; // Don't fallback silently, throw the error so UI can handle it
+    }
   },
 
   // Categories
@@ -299,7 +304,12 @@ const FirebaseAPI = {
 
   async deleteCategory(id) {
     return this._callWithFallback(
-      () => deleteDoc(doc(db, 'categories', id)),
+      async () => {
+        console.log('Attempting to delete category:', id);
+        const result = await deleteDoc(doc(db, 'categories', id));
+        console.log('Category deleted successfully:', id);
+        return result;
+      },
       () => fallbackStorage.deleteCategory(id)
     );
   },
@@ -333,7 +343,12 @@ const FirebaseAPI = {
 
   async deleteService(id) {
     return this._callWithFallback(
-      () => deleteDoc(doc(db, 'services', id)),
+      async () => {
+        console.log('Attempting to delete service:', id);
+        const result = await deleteDoc(doc(db, 'services', id));
+        console.log('Service deleted successfully:', id);
+        return result;
+      },
       () => fallbackStorage.deleteService(id)
     );
   },
@@ -367,7 +382,12 @@ const FirebaseAPI = {
 
   async deleteAddon(id) {
     return this._callWithFallback(
-      () => deleteDoc(doc(db, 'addons', id)),
+      async () => {
+        console.log('Attempting to delete addon:', id);
+        const result = await deleteDoc(doc(db, 'addons', id));
+        console.log('Addon deleted successfully:', id);
+        return result;
+      },
       () => fallbackStorage.deleteAddon(id)
     );
   },
@@ -407,7 +427,12 @@ const FirebaseAPI = {
 
   async deleteGalleryImage(id) {
     return this._callWithFallback(
-      () => deleteDoc(doc(db, 'gallery', id)),
+      async () => {
+        console.log('Attempting to delete gallery image:', id);
+        const result = await deleteDoc(doc(db, 'gallery', id));
+        console.log('Gallery image deleted successfully:', id);
+        return result;
+      },
       () => fallbackStorage.deleteGalleryImage(id)
     );
   },
@@ -511,8 +536,32 @@ const FirebaseAPI = {
 
   async deleteTestimonial(id) {
     return this._callWithFallback(
-      () => deleteDoc(doc(db, 'testimonials', id)),
+      async () => {
+        console.log('Attempting to delete testimonial:', id);
+        const result = await deleteDoc(doc(db, 'testimonials', id));
+        console.log('Testimonial deleted successfully:', id);
+        return result;
+      },
       () => fallbackStorage.deleteTestimonial(id)
+    );
+  },
+
+  // Founders Settings
+  async getFoundersSettings() {
+    return this._callWithFallback(
+      async () => {
+        const docRef = doc(db, 'settings', 'founders');
+        const docSnap = await getDoc(docRef);
+        return docSnap.exists() ? docSnap.data() : null;
+      },
+      () => fallbackStorage.getFoundersSettings()
+    );
+  },
+
+  async updateFoundersSettings(data) {
+    return this._callWithFallback(
+      () => setDoc(doc(db, 'settings', 'founders'), { ...data, updatedAt: new Date() }, { merge: true }),
+      () => fallbackStorage.updateFoundersSettings(data)
     );
   }
 };

@@ -97,7 +97,7 @@ class AdminDashboard {
     const viewSiteBtn = document.getElementById('view-site-btn');
     if (viewSiteBtn) {
       viewSiteBtn.addEventListener('click', () => {
-        window.open('index.html', '_blank');
+        window.open('./index.html', '_blank');
       });
     }
 
@@ -167,6 +167,7 @@ class AdminDashboard {
       services: 'Services & Pricing',
       orders: 'Client Orders',
       testimonials: 'Client Testimonials',
+      content: 'Website Content',
       profile: 'Admin Profile',
       settings: 'Site Settings'
     };
@@ -200,6 +201,9 @@ class AdminDashboard {
           break;
         case 'testimonials':
           await this.loadTestimonials();
+          break;
+        case 'content':
+          await this.loadContent();
           break;
         case 'profile':
           await this.loadProfile();
@@ -291,10 +295,10 @@ class AdminDashboard {
                   </span>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-secondary" onclick="adminDashboard.editCategory('${category.id}')">
+                  <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.editCategory('${category.id}')">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button class="btn btn-sm btn-secondary" onclick="adminDashboard.deleteCategory('${category.id}')" style="margin-left: 8px;">
+                  <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.deleteCategory('${category.id}')" style="margin-left: 8px;">
                     <i class="fas fa-trash"></i>
                   </button>
                 </td>
@@ -358,7 +362,7 @@ class AdminDashboard {
       <div class="gallery-item">
         <img src="${image.url}" alt="${image.alt || 'Gallery image'}" loading="lazy">
         <div class="gallery-actions">
-          <button class="gallery-btn" onclick="adminDashboard.deleteGalleryImage('${image.id}')" title="Delete">
+          <button class="gallery-btn" onclick="window.adminDashboard.deleteGalleryImage('${image.id}')" title="Delete">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -392,10 +396,10 @@ class AdminDashboard {
           <strong>${this.formatPrice(service.price, service.currency)} ${service.unit ? `/ ${service.unit}` : ''}</strong>
         </div>
         <div>
-          <button class="btn btn-sm btn-secondary" onclick="adminDashboard.editService('${service.id}')">
+          <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.editService('${service.id}')">
             <i class="fas fa-edit"></i>
           </button>
-          <button class="btn btn-sm btn-secondary" onclick="adminDashboard.deleteService('${service.id}')" style="margin-left: 8px;">
+          <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.deleteService('${service.id}')" style="margin-left: 8px;">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -418,10 +422,10 @@ class AdminDashboard {
           <span class="text-primary">${this.formatPrice(addon.price, addon.currency)} ${addon.unit ? `/ ${addon.unit}` : ''}</span>
         </div>
         <div>
-          <button class="btn btn-sm btn-secondary" onclick="adminDashboard.editAddon('${addon.id}')">
+          <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.editAddon('${addon.id}')">
             <i class="fas fa-edit"></i>
           </button>
-          <button class="btn btn-sm btn-secondary" onclick="adminDashboard.deleteAddon('${addon.id}')" style="margin-left: 8px;">
+          <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.deleteAddon('${addon.id}')" style="margin-left: 8px;">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -476,7 +480,7 @@ class AdminDashboard {
                 </td>
                 <td>
                   <select class="form-control" style="width: auto; padding: 4px 8px; font-size: 12px;" 
-                          onchange="adminDashboard.updateOrderStatus('${order.id}', this.value)">
+                          onchange="window.adminDashboard.updateOrderStatus('${order.id}', this.value)">
                     <option value="new" ${order.status === 'new' ? 'selected' : ''}>New</option>
                     <option value="contacted" ${order.status === 'contacted' ? 'selected' : ''}>Contacted</option>
                     <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
@@ -485,7 +489,7 @@ class AdminDashboard {
                   </select>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-secondary" onclick="adminDashboard.viewOrderDetails('${order.id}')" title="View Details">
+                  <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.viewOrderDetails('${order.id}')" title="View Details">
                     <i class="fas fa-eye"></i>
                   </button>
                 </td>
@@ -521,16 +525,36 @@ class AdminDashboard {
             <span class="status-badge ${testimonial.active ? 'status-confirmed' : 'status-cancelled'}">
               ${testimonial.active ? 'Active' : 'Inactive'}
             </span>
-            <button class="btn btn-sm btn-secondary" onclick="adminDashboard.editTestimonial('${testimonial.id}')" style="margin-left: 8px;">
+            <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.editTestimonial('${testimonial.id}')" style="margin-left: 8px;">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="btn btn-sm btn-secondary" onclick="adminDashboard.deleteTestimonial('${testimonial.id}')" style="margin-left: 8px;">
+            <button class="btn btn-sm btn-secondary" onclick="window.adminDashboard.deleteTestimonial('${testimonial.id}')" style="margin-left: 8px;">
               <i class="fas fa-trash"></i>
             </button>
           </div>
         </div>
       </div>
     `).join('');
+  }
+
+  async loadContent() {
+    const settings = await FirebaseAPI.getSiteSettings();
+    const founders = await FirebaseAPI.getFoundersSettings();
+    
+    if (settings) {
+      // Populate hero content form
+      document.getElementById('hero-main-title').value = settings.heroTitle || '';
+      document.getElementById('hero-subtitle').value = settings.heroSubtitle || '';
+      
+      // Populate about content form
+      document.getElementById('about-main-text').value = settings.aboutText || '';
+    }
+    
+    if (founders) {
+      // Populate founders content form
+      document.getElementById('founders-title').value = founders.title || '';
+      document.getElementById('founders-description').value = founders.description || '';
+    }
   }
 
   async loadSettings() {
@@ -630,6 +654,22 @@ class AdminDashboard {
     document.getElementById('social-settings-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       await this.saveSocialSettings(e);
+    });
+
+    // Content management forms
+    document.getElementById('hero-content-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.saveHeroContent(e);
+    });
+
+    document.getElementById('about-content-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.saveAboutContent(e);
+    });
+
+    document.getElementById('founders-content-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.saveFoundersContent(e);
     });
 
     // Profile form
@@ -905,6 +945,54 @@ class AdminDashboard {
     } catch (error) {
       console.error('Error saving social links:', error);
       this.showToast('Error saving social links', 'error');
+    }
+  }
+
+  // Content management save methods
+  async saveHeroContent(e) {
+    const formData = new FormData(e.target);
+    const data = {
+      heroTitle: formData.get('heroTitle'),
+      heroSubtitle: formData.get('heroSubtitle')
+    };
+
+    try {
+      await FirebaseAPI.updateSiteSettings(data);
+      this.showToast('Hero section updated successfully!');
+    } catch (error) {
+      console.error('Error saving hero content:', error);
+      this.showToast('Error saving hero content', 'error');
+    }
+  }
+
+  async saveAboutContent(e) {
+    const formData = new FormData(e.target);
+    const data = {
+      aboutText: formData.get('aboutText')
+    };
+
+    try {
+      await FirebaseAPI.updateSiteSettings(data);
+      this.showToast('About section updated successfully!');
+    } catch (error) {
+      console.error('Error saving about content:', error);
+      this.showToast('Error saving about content', 'error');
+    }
+  }
+
+  async saveFoundersContent(e) {
+    const formData = new FormData(e.target);
+    const data = {
+      title: formData.get('foundersTitle'),
+      description: formData.get('foundersDescription')
+    };
+
+    try {
+      await FirebaseAPI.updateFoundersSettings(data);
+      this.showToast('Founders section updated successfully!');
+    } catch (error) {
+      console.error('Error saving founders content:', error);
+      this.showToast('Error saving founders content', 'error');
     }
   }
 

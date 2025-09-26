@@ -670,11 +670,18 @@ async function loadDynamicContent() {
     }
 
     // Update founders section copy (title + first paragraph) if available
-    const foundersTitleEl = document.querySelector('#founders .section-title');
-    const foundersParas = document.querySelectorAll('#founders .founders-copy p');
+    const foundersTitleEl = document.getElementById('founders-title');
+    const foundersDescEl = document.getElementById('founders-description');
+    const foundersSecondEl = document.getElementById('founders-second-para');
+    
     if (CONFIG.founders) {
       if (foundersTitleEl && CONFIG.founders.title) foundersTitleEl.textContent = CONFIG.founders.title;
-      if (foundersParas[0] && CONFIG.founders.description) foundersParas[0].textContent = CONFIG.founders.description;
+      if (foundersDescEl && CONFIG.founders.description) foundersDescEl.textContent = CONFIG.founders.description;
+    }
+    
+    // Show admin profile information if available
+    if (CONFIG.adminProfile && CONFIG.adminProfile.bio && foundersSecondEl) {
+      foundersSecondEl.textContent = CONFIG.adminProfile.bio;
     }
 
     // Render founders photo: if adminProfile.photo exists, show it; else fall back to assets
@@ -682,20 +689,30 @@ async function loadDynamicContent() {
     if (photosHolder) {
       photosHolder.innerHTML = '';
       if (CONFIG?.adminProfile?.photo) {
+        // Show admin profile photo
         const card = document.createElement('div');
         card.className = 'founder-card parallax';
         card.setAttribute('data-depth', '12');
         card.style.setProperty('--dur', '12s');
         const img = document.createElement('img');
-        img.alt = CONFIG.adminProfile.name || 'Founder';
+        img.alt = CONFIG.adminProfile.name || 'Admin';
         img.src = CONFIG.adminProfile.photo;
+        img.style.objectFit = 'cover';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.borderRadius = '12px';
         const shine = document.createElement('span');
         shine.className = 'shine';
         card.appendChild(img);
         card.appendChild(shine);
         photosHolder.appendChild(card);
+        console.log('Admin profile photo loaded:', CONFIG.adminProfile.photo);
       } else if (CONFIG?.founders?.count) {
+        // Fallback to default founder images
         loadFounders(Number(CONFIG.founders.count));
+      } else {
+        // Show placeholder if no photo and no founders
+        console.log('No admin photo or founders configured');
       }
     }
     

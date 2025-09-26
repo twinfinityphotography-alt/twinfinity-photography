@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin-styles.css">
+  <link rel="stylesheet" href="./admin-styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -80,6 +80,10 @@
         <a href="#" class="nav-item" data-section="testimonials">
           <i class="fas fa-star"></i>
           <span>Testimonials</span>
+        </a>
+        <a href="#" class="nav-item" data-section="content">
+          <i class="fas fa-edit"></i>
+          <span>Website Content</span>
         </a>
         <a href="#" class="nav-item" data-section="profile">
           <i class="fas fa-user"></i>
@@ -294,10 +298,81 @@
         </div>
       </section>
 
+      <!-- Website Content Section -->
+      <section id="content-section" class="content-section">
+        <div class="section-header">
+          <h2>Website Content Management</h2>
+        </div>
+        <div class="content-container">
+          <div class="card">
+            <div class="card-header">
+              <h3>Hero Section</h3>
+            </div>
+            <div class="card-content">
+              <form id="hero-content-form">
+                <div class="form-group">
+                  <label for="hero-main-title">Main Title</label>
+                  <input type="text" id="hero-main-title" name="heroTitle" required placeholder="Timeless stories, beautifully told">
+                </div>
+                <div class="form-group">
+                  <label for="hero-subtitle">Subtitle</label>
+                  <textarea id="hero-subtitle" name="heroSubtitle" rows="2" required placeholder="Elegant wedding, event, and portrait photography..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i>
+                  Update Hero Section
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>About Section</h3>
+            </div>
+            <div class="card-content">
+              <form id="about-content-form">
+                <div class="form-group">
+                  <label for="about-main-text">Main About Text</label>
+                  <textarea id="about-main-text" name="aboutText" rows="4" required placeholder="We are Twinfinity Photography — storytellers dedicated to..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i>
+                  Update About Section
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Founders Section</h3>
+            </div>
+            <div class="card-content">
+              <form id="founders-content-form">
+                <div class="form-group">
+                  <label for="founders-title">Section Title</label>
+                  <input type="text" id="founders-title" name="foundersTitle" required placeholder="Meet the Sisters behind Twinfinity">
+                </div>
+                <div class="form-group">
+                  <label for="founders-description">Description</label>
+                  <textarea id="founders-description" name="foundersDescription" rows="3" required placeholder="Two creative storytellers, dedicated to capturing emotion..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i>
+                  Update Founders Section
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Admin Profile Section -->
       <section id="profile-section" class="content-section">
         <div class="section-header">
           <h2>Admin Profile</h2>
+          <p class="text-muted">This profile information will be displayed in the founders section of your website</p>
         </div>
         <div class="profile-container">
           <div class="card">
@@ -622,6 +697,6 @@
     </div>
   </div>
 
-  <script type="module" src="admin-script.js?v=20250926"></script>
+  <script type="module" src="./admin-script.js?v=20250926"></script>
 </body>
 </html>
