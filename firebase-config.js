@@ -275,15 +275,24 @@ const FirebaseAPI = {
   },
 
   async addCategory(data) {
+    // use slug id if provided, else auto id
+    const id = data.id || undefined;
     return this._callWithFallback(
-      () => addDoc(collection(db, 'categories'), { ...data, createdAt: new Date() }),
+      async () => {
+        if (id) {
+          await setDoc(doc(db, 'categories', id), { ...data, createdAt: new Date() });
+          return { id };
+        } else {
+          return await addDoc(collection(db, 'categories'), { ...data, createdAt: new Date() });
+        }
+      },
       () => fallbackStorage.addCategory(data)
     );
   },
 
   async updateCategory(id, data) {
     return this._callWithFallback(
-      () => updateDoc(doc(db, 'categories', id), { ...data, updatedAt: new Date() }),
+      () => setDoc(doc(db, 'categories', id), { ...data, updatedAt: new Date() }, { merge: true }),
       () => fallbackStorage.updateCategory(id, data)
     );
   },
@@ -299,8 +308,10 @@ const FirebaseAPI = {
   async getServices() {
     return this._callWithFallback(
       async () => {
-        const snapshot = await getDocs(query(collection(db, 'services'), orderBy('order')));
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snapshot = await getDocs(collection(db, 'services'));
+        return snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a,b) => Number(a.order||0) - Number(b.order||0));
       },
       () => fallbackStorage.getServices()
     );
@@ -331,8 +342,10 @@ const FirebaseAPI = {
   async getAddons() {
     return this._callWithFallback(
       async () => {
-        const snapshot = await getDocs(query(collection(db, 'addons'), orderBy('order')));
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snapshot = await getDocs(collection(db, 'addons'));
+        return snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a,b) => Number(a.order||0) - Number(b.order||0));
       },
       () => fallbackStorage.getAddons()
     );
@@ -457,7 +470,7 @@ const FirebaseAPI = {
 
   async updateAdminProfile(data) {
     return this._callWithFallback(
-      () => updateDoc(doc(db, 'settings', 'adminProfile'), { ...data, updatedAt: new Date() }),
+      () => setDoc(doc(db, 'settings', 'adminProfile'), { ...data, updatedAt: new Date() }, { merge: true }),
       () => fallbackStorage.updateAdminProfile(data)
     );
   },
@@ -473,8 +486,10 @@ const FirebaseAPI = {
   async getTestimonials() {
     return this._callWithFallback(
       async () => {
-        const snapshot = await getDocs(query(collection(db, 'testimonials'), orderBy('order')));
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snapshot = await getDocs(collection(db, 'testimonials'));
+        return snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a,b) => Number(a.order||0) - Number(b.order||0));
       },
       () => fallbackStorage.getTestimonials()
     );
