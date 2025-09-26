@@ -300,27 +300,44 @@ const FirebaseAPI = {
   },
 
   async deleteCategory(id) {
+    if (!id || id.trim() === '') {
+      throw new Error('Invalid category ID provided for deletion');
+    }
+    
     return this._callWithFallback(
       async () => {
         console.log('Attempting to delete category:', id);
         
-        // First, delete all gallery images in this category
+        // First, get and delete all gallery images in this category
         const galleryQuery = query(collection(db, 'gallery'), where('categoryId', '==', id));
         const gallerySnapshot = await getDocs(galleryQuery);
         
-        const deletePromises = [];
-        gallerySnapshot.docs.forEach(docSnap => {
-          deletePromises.push(deleteDoc(doc(db, 'gallery', docSnap.id)));
-        });
+        console.log(`Found ${gallerySnapshot.docs.length} gallery images to delete for category ${id}`);
         
-        // Wait for all gallery images to be deleted
-        await Promise.all(deletePromises);
-        console.log(`Deleted ${deletePromises.length} gallery images from category ${id}`);
+        // Delete gallery images one by one to avoid batch limits
+        for (const docSnap of gallerySnapshot.docs) {
+          try {
+            await deleteDoc(doc(db, 'gallery', docSnap.id));
+            console.log(`Deleted gallery image: ${docSnap.id}`);
+          } catch (error) {
+            console.warn(`Failed to delete gallery image ${docSnap.id}:`, error);
+            // Continue with other deletions even if one fails
+          }
+        }
         
         // Then delete the category itself
-        const result = await deleteDoc(doc(db, 'categories', id));
+        const categoryRef = doc(db, 'categories', id);
+        
+        // Check if category exists before deleting
+        const categoryDoc = await getDoc(categoryRef);
+        if (!categoryDoc.exists()) {
+          console.log('Category does not exist, may have been already deleted:', id);
+          return true; // Consider it successful
+        }
+        
+        await deleteDoc(categoryRef);
         console.log('Category deleted successfully:', id);
-        return result;
+        return true;
       },
       () => fallbackStorage.deleteCategory(id)
     );
@@ -354,12 +371,25 @@ const FirebaseAPI = {
   },
 
   async deleteService(id) {
+    if (!id || id.trim() === '') {
+      throw new Error('Invalid service ID provided for deletion');
+    }
+    
     return this._callWithFallback(
       async () => {
         console.log('Attempting to delete service:', id);
-        const result = await deleteDoc(doc(db, 'services', id));
+        
+        const serviceRef = doc(db, 'services', id);
+        const serviceDoc = await getDoc(serviceRef);
+        
+        if (!serviceDoc.exists()) {
+          console.log('Service does not exist, may have been already deleted:', id);
+          return true;
+        }
+        
+        await deleteDoc(serviceRef);
         console.log('Service deleted successfully:', id);
-        return result;
+        return true;
       },
       () => fallbackStorage.deleteService(id)
     );
@@ -393,12 +423,25 @@ const FirebaseAPI = {
   },
 
   async deleteAddon(id) {
+    if (!id || id.trim() === '') {
+      throw new Error('Invalid addon ID provided for deletion');
+    }
+    
     return this._callWithFallback(
       async () => {
         console.log('Attempting to delete addon:', id);
-        const result = await deleteDoc(doc(db, 'addons', id));
+        
+        const addonRef = doc(db, 'addons', id);
+        const addonDoc = await getDoc(addonRef);
+        
+        if (!addonDoc.exists()) {
+          console.log('Addon does not exist, may have been already deleted:', id);
+          return true;
+        }
+        
+        await deleteDoc(addonRef);
         console.log('Addon deleted successfully:', id);
-        return result;
+        return true;
       },
       () => fallbackStorage.deleteAddon(id)
     );
@@ -438,12 +481,25 @@ const FirebaseAPI = {
   },
 
   async deleteGalleryImage(id) {
+    if (!id || id.trim() === '') {
+      throw new Error('Invalid gallery image ID provided for deletion');
+    }
+    
     return this._callWithFallback(
       async () => {
         console.log('Attempting to delete gallery image:', id);
-        const result = await deleteDoc(doc(db, 'gallery', id));
+        
+        const imageRef = doc(db, 'gallery', id);
+        const imageDoc = await getDoc(imageRef);
+        
+        if (!imageDoc.exists()) {
+          console.log('Gallery image does not exist, may have been already deleted:', id);
+          return true;
+        }
+        
+        await deleteDoc(imageRef);
         console.log('Gallery image deleted successfully:', id);
-        return result;
+        return true;
       },
       () => fallbackStorage.deleteGalleryImage(id)
     );
@@ -547,12 +603,25 @@ const FirebaseAPI = {
   },
 
   async deleteTestimonial(id) {
+    if (!id || id.trim() === '') {
+      throw new Error('Invalid testimonial ID provided for deletion');
+    }
+    
     return this._callWithFallback(
       async () => {
         console.log('Attempting to delete testimonial:', id);
-        const result = await deleteDoc(doc(db, 'testimonials', id));
+        
+        const testimonialRef = doc(db, 'testimonials', id);
+        const testimonialDoc = await getDoc(testimonialRef);
+        
+        if (!testimonialDoc.exists()) {
+          console.log('Testimonial does not exist, may have been already deleted:', id);
+          return true;
+        }
+        
+        await deleteDoc(testimonialRef);
         console.log('Testimonial deleted successfully:', id);
-        return result;
+        return true;
       },
       () => fallbackStorage.deleteTestimonial(id)
     );
