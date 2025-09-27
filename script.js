@@ -1,3 +1,4 @@
+// Updated: 2025-09-27T06:59:00Z - Cache Bust
 // Twinfinity Photography front-end interactions
 
 // Site-wide config: update these once and the site updates everywhere.
